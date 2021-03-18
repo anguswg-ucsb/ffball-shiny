@@ -1,0 +1,143 @@
+---
+title: "Fantasy land"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    navbar:
+      - { icon: "fa-question-circle", href: "https://water.noaa.gov/about/nwm", align: right }
+    theme: cerulean
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include = FALSE}
+library(shiny)
+library(flexdashboard)
+library(shinyWidgets)
+library(shinycustomloader)
+
+library(nflfastR)
+library(DT)
+library(plotly)
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(DT)
+library(plotly)
+
+source('helper.R')
+
+# df1 <- load_data(2020)
+```
+
+```{r context="server"}
+
+ season <<- reactive({
+    season <- as.numeric(input$seasonDropdown)
+ })
+
+```
+
+
+
+Player stats {data-icon="fa-tint"}
+====================================
+
+Inputs {.sidebar}
+-------------------------------------
+
+### Filters
+```{r}
+selectInput("seasonDropdown",
+            label = "Season", 
+            choices = c("All", 2020:1999))
+
+selectInput("positionDropdown",
+            label = "Position", 
+            choices = c("All", "QB", "RB", "WR", "TE"))
+
+verbatimTextOutput("seasonDropdownText")
+
+verbatimTextOutput("positionDropdownText")
+```
+
+```{r context = "server"}
+# TESTING INPUTS + ACTION BUTTON REACTIVITY
+seasonText <- eventReactive(input$submitButton, {
+    paste0("Season: ", input$seasonDropdown)
+  })
+
+output$seasonDropdownText <- renderText({
+   seasonText()
+  })
+
+positionText <- eventReactive(input$submitButton, {
+    paste0("Position: ", input$positionDropdown)
+  })
+  
+output$positionDropdownText <- renderText({
+   positionText()
+  })
+
+```
+
+### **Submit**
+```{r}
+shiny::actionButton("submitButton", label = "Enter", icon("search"))
+```
+
+Row
+----------------------------------------
+### Data table
+```{r}
+DTOutput("seasonDT")
+```
+
+```{r context = "server"}
+# seasonData <- eventReactive(input$submitButton, {
+#   make_dt(load_data(as.numeric(input$seasonDropdown)))
+#   })
+# 
+# output$seasonDT <- renderDT({
+#    seasonData()
+#   })
+
+# season & position inputs output data table
+seasonData <- eventReactive(input$submitButton, {
+    load_data(season())
+    df <- load_data(season())
+      if (input$positionDropdown != "All") {
+          df <- df[df$position == input$positionDropdown,]
+      }
+  
+    #select position, team, full_name to join with summarized df
+    df2 <- df %>% 
+      select(3, 4, 42, 43)
+   
+    df2 <- unique(df2)
+    
+    df <- df %>%
+        group_by(full_name) %>%
+        summarise(across(6:39, sum))
+    df <- left_join(df2, df, by = "full_name") 
+    
+    df <- df %>%
+      select(4, 1:3, 38, 37, 36, 5:35) %>% 
+      arrange(-fpts_hppr)
+      datatable(df, options = list(scrollX = TRUE, paging = TRUE, searching = TRUE))
+  })
+
+output$seasonDT <- renderDT({
+   seasonData()
+  })
+
+```
+
+
+
+
+
+
+
+

@@ -1,9 +1,13 @@
 
 library(tidyverse)
 library(nflfastR)
+library(DT)
+library(plotly)
 
-
-
+# autocomplete_input("auto", "Search for a County:",
+#                    value = "",
+#                    max_options = 5,
+#                    structure(today$fips, names = today$name))
 pbp <- load_pbp(2020)
 
 stats <- calculate_player_stats(pbp,weekly = T)
@@ -26,6 +30,12 @@ rosters2$player_name <- paste0(rosters2$name_abbr, rosters2$last_name)
 
 player <- left_join(player, select(rosters2, position, full_name, gsis_id), by = c("player_id" = "gsis_id"))
 
+dt <- player %>%
+  group_by(full_name) %>%
+  summarise(across(6:39, sum))
+
+DT::datatable(dt)
+
 # find position rank
 position_rank <- player %>%
   group_by(position, full_name) %>%
@@ -39,6 +49,7 @@ position_rank <- player %>%
   mutate(rank = 1:n())
 
 player2 <- player %>%
+  filter(full_name == "Dalvin Cook") %>%
   select(1:5, 8, 20, 28, 37:40)
 
 plot_ly(player2, x = ~week, y = ~rushing_yards, type = 'bar',
@@ -55,7 +66,16 @@ plot_ly(player2, x = ~week, y = ~rushing_yards, type = 'bar',
                           line = list(color = 'rgba(55, 128, 191, 0.7)',
                                       width = 2))) %>%
   add_trace(player2, x = ~week,
-            y = ~fpts_hppr, type = "scatter", mode = "lines")
+            y = ~fpts_hppr, type = "scatter",
+            mode = "lines",
+            color = I("black")) %>%
+              # list(color = 'rgb(49,130,189)')) %>%
+  # add_lines(player2, x = ~week, y = ~fpts_hppr, inherit = TRUE) %>%
+  layout(barmode = "stack")
+  add_markers(player2, x = ~week,
+              y = ~fpts_hppr, color = "black")
+  add_trace(player2, x = ~week,
+            y = ~fpts_hppr, type = "scatter", mode = "lines", fill = "black")
   layout(
          xaxis = list(title = "",
                       tickfont = list(size = 14,color = 'rgb(107, 107, 107)')),
