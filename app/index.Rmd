@@ -33,10 +33,48 @@ source('helper.R')
 
 ```{r context="server"}
 
- season <<- reactive({
-    season <- as.numeric(input$seasonDropdown)
- })
+ # season <<- reactive({
+     # season <- load_data(as.numeric(input$seasonDropdown))
+ # })
+# season <- reactiveValues()
+season <<- reactive({
+  dataset <- load_data(as.numeric(input$seasonDropdown))
+})
 
+# names <- unique(season$full_name)
+
+output$playerSelector <- renderUI({
+  df2 <- season()
+   selectInput("playerSearch", "Choose name:", as.list(df2$full_name), multiple= TRUE, selectize = TRUE)
+})
+
+seasonData <- eventReactive(input$submitButton, {
+    df <- season()
+    if (input$positionDropdown != "All") {
+          df <- df[df$position == input$positionDropdown,]
+          }
+    #select position, team, full_name to join with summarized df
+        df2 <- df %>%
+          select(3, 4, 42, 43)
+        df2 <- unique(df2)
+        df <- df %>%
+            group_by(full_name) %>%
+            summarise(across(6:39, sum))
+        df <- left_join(df2, df, by = "full_name")
+        df <- df %>%
+          select(4, 1:3, 38, 37, 36, 5:35) %>%
+          arrange(-fpts_hppr)
+        
+    # datatabale
+      datatable(df, options = list(scrollX = TRUE, paging = TRUE, searching = TRUE))
+  })
+
+output$seasonDT <- renderDT({
+   seasonData()
+  })
+# observeEvent(input$submitButton, {
+#   season$df_data <- load_data(as.numeric(input$seasonDropdown))
+#              })
 ```
 
 
@@ -49,6 +87,11 @@ Inputs {.sidebar}
 
 ### Filters
 ```{r}
+# dqshiny::autocomplete_input("auto", "Search for a County:",
+#                                 value = "",
+#                                 max_options = 5,
+#                                 options = list(season()$full_name))
+
 selectInput("seasonDropdown",
             label = "Season", 
             choices = c("All", 2020:1999))
@@ -57,9 +100,18 @@ selectInput("positionDropdown",
             label = "Position", 
             choices = c("All", "QB", "RB", "WR", "TE"))
 
+# selectInput("playerSearch",
+#             label = "Player",
+#             choices = df2$full_name,
+#             multiple= TRUE, selectize = TRUE)
+
+uiOutput("playerSelector")
+
 verbatimTextOutput("seasonDropdownText")
 
 verbatimTextOutput("positionDropdownText")
+
+verbatimTextOutput("playerSearchText")
 ```
 
 ```{r context = "server"}
@@ -78,6 +130,14 @@ positionText <- eventReactive(input$submitButton, {
   
 output$positionDropdownText <- renderText({
    positionText()
+  })
+
+playerText <- eventReactive(input$submitButton, {
+    paste0("Player: ", input$playerSearch)
+  })
+  
+output$playerSearchText <- renderText({
+   playerText()
   })
 
 ```
@@ -102,35 +162,39 @@ DTOutput("seasonDT")
 # output$seasonDT <- renderDT({
 #    seasonData()
 #   })
+# observeEvent(input$submitButton, {
+#   season$df_data <<- load_data(as.numeric(input$seasonDropdown))
+# })
 
 # season & position inputs output data table
-seasonData <- eventReactive(input$submitButton, {
-    load_data(season())
-    df <- load_data(season())
-      if (input$positionDropdown != "All") {
-          df <- df[df$position == input$positionDropdown,]
-      }
-  
-    #select position, team, full_name to join with summarized df
-    df2 <- df %>% 
-      select(3, 4, 42, 43)
-   
-    df2 <- unique(df2)
-    
-    df <- df %>%
-        group_by(full_name) %>%
-        summarise(across(6:39, sum))
-    df <- left_join(df2, df, by = "full_name") 
-    
-    df <- df %>%
-      select(4, 1:3, 38, 37, 36, 5:35) %>% 
-      arrange(-fpts_hppr)
-      datatable(df, options = list(scrollX = TRUE, paging = TRUE, searching = TRUE))
-  })
-
-output$seasonDT <- renderDT({
-   seasonData()
-  })
+# seasonData <- eventReactive(input$submitButton, {
+#   df <- season()
+#     season$df_data <<- load_data(as.numeric(input$seasonDropdown))
+#     
+#       if (input$positionDropdown != "All") {
+#           season <- season[season$position == input$positionDropdown,]
+#       }
+# 
+#     #select position, team, full_name to join with summarized season
+#     season2 <- season %>%
+#       select(3, 4, 42, 43)
+# 
+#     season2 <- unique(season2)
+# 
+#     season <- season %>%
+#         group_by(full_name) %>%
+#         summarise(across(6:39, sum))
+#     season <- left_join(season2, season, by = "full_name")
+# 
+#     season <- season %>%
+#       select(4, 1:3, 38, 37, 36, 5:35) %>%
+#       arrange(-fpts_hppr)
+#       datatable(season, options = list(scrollX = TRUE, paging = TRUE, searching = TRUE))
+#   })
+# 
+# output$seasonDT <- renderDT({
+#    seasonData()
+#   })
 
 ```
 
@@ -138,6 +202,23 @@ output$seasonDT <- renderDT({
 
 
 
+```{r}
+# observe(
+#     if(input$auto == ""){
+#       NULL
+#     } else {
+#       FIP <<- input$auto
+#       leafletProxy("covidMap") %>%
+#         zoom_to_county(counties, FIP)
+#       output$covidChart <- renderDygraph({ make_graph(covid19, FIP) })
+#       output$covidTable <- renderDT({ make_table2(today, FIP) })
+#       output$covidNewCases = renderPlotly({ daily_cases_graph(covid19, FIP) })
+#       output$covidNewDeaths <- renderPlotly({ daily_deaths_graph(covid19, FIP) })
+#       leafletProxy("covidMap2") %>%
+#           zoom_to_county(counties, FIP)
+#     })
+
+```
 
 
 
