@@ -28,26 +28,16 @@ make_dt <- function(season_df) {
 }
 
 # Get player stats to plot --- FPTS + RUSH + PASS + REC YARDS for each game in given week range
-player_data <- function(df_season, name) {
+player_data <- function(df_season, name, start, end) {
   player2 <- df_season %>%
     filter(full_name == as.character(name)) %>%
     select(1:5, 42, 8, 20, 28, 37:40) %>%
-    # filter(week >= start, week <= end) %>%
+    filter(week >= start, week <= end) %>%
     mutate(rush_per_game = (sum(rushing_yards)/nrow(.)),
            rec_per_game = (sum(receiving_yards)/nrow(.)),
            pass_per_game = (sum(passing_yards)/nrow(.)),
            fpts_per_game = (sum(fpts_hppr)/nrow(.)))
 }
-# player_data <- function(df_season, name, start, end) {
-#   player2 <- df_season %>%
-#     filter(full_name == as.character(name)) %>%
-#     select(1:5, 42, 8, 20, 28, 37:40) %>%
-#     filter(week >= start, week <= end) %>%
-#     mutate(rush_per_game = (sum(rushing_yards)/nrow(.)),
-#            rec_per_game = (sum(receiving_yards)/nrow(.)),
-#            pass_per_game = (sum(passing_yards)/nrow(.)),
-#            fpts_per_game = (sum(fpts_hppr)/nrow(.)))
-# }
 
 # plot player_data() data
 make_player_plot <- function(df) {

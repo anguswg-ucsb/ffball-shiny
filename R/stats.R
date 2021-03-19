@@ -67,8 +67,6 @@ p1 <- player_data(season, "Tom Brady")
 ggplot(p1, aes(x = week, y = week)) +
   ggimage::geom_image(aes(image = headshot_url))
 
-# Headshot
-ggplot()
 
 
 

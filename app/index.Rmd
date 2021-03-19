@@ -133,7 +133,7 @@ playerData <- eventReactive(input$submitButton, {
     NULL
   } else {
     df <- season()
-    df <- player_data(df, input$playerSearch)
+    df <- player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
     make_player_plot(df)
   }
 })
