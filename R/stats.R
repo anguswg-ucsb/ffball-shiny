@@ -4,53 +4,97 @@ library(nflfastR)
 library(DT)
 library(plotly)
 
-# autocomplete_input("auto", "Search for a County:",
-#                    value = "",
-#                    max_options = 5,
-#                    structure(today$fips, names = today$name))
-pbp <- load_pbp(2020)
+# LOAD IN SEASON DATA
+season <- load_data(2020)
 
-stats <- calculate_player_stats(pbp,weekly = T)
+# Get player stats to plot --- FPTS + RUSH + PASS + REC YARDS IN EACH GAME FOR GIVEN WEEKS
+  filter(full_name == "Lamar Jackson") %>%
+  select(1:5, 42, 8, 20, 28, 37:40) %>%
+  # filter(week >= 4, week <= 10) %>%
+  mutate(rush_per_game = (sum(rushing_yards)/nrow(.)),
+         rec_per_game = (sum(receiving_yards)/nrow(.)),
+         pass_per_game = (sum(passing_yards)/nrow(.)),
+         fpts_per_game = (sum(fpts_hppr)/nrow(.)))
 
-player <- stats %>%
-  filter(week <= 16) %>%
-  mutate(fpts_hppr = fantasy_points + (receptions*0.5),
-         ffpt_per_game = sum(fpts_hppr)/max(week),
-         rush_yards_pg = sum(rushing_yards)/max(week))
+player_data <- function(df_season, name) {
+  player2 <- df_season %>%
+  filter(full_name == as.character(name)) %>%
+  select(1:5, 42, 8, 20, 28, 37:40) %>%
+  # filter(week >= 4, week <= 10) %>%
+  mutate(rush_per_game = (sum(rushing_yards)/nrow(.)),
+         rec_per_game = (sum(receiving_yards)/nrow(.)),
+         pass_per_game = (sum(passing_yards)/nrow(.)),
+         fpts_per_game = (sum(fpts_hppr)/nrow(.)))
+}
 
-rosters <- nflfastR::fast_scraper_roster(2020) %>%
-  filter(position %in% c("QB", "RB", "TE", "WR"))
 
-names <- substr(rosters$first_name, start = 1, stop = 1)
 
-rosters2 <- rosters
+# Fantasy points + RUSH YARDS + PASS + REC  in game in weeks
+plot_ly(player, x = ~week, y = ~rushing_yards,
+            type = 'bar',
+            textposition = 'auto',
+            name = "RUSHING",
+            marker = list(color = 'rgba(219, 64, 82, 0.7)',
+            line = list(color = 'rgba(219, 64, 82, 1.0)',
+            width = 2))) %>%
+  add_trace(player, x = ~week, y = ~receiving_yards,
+            type = 'bar',
+            name = "RECIEVING",
+            marker = list(color = 'rgba(10, 150, 24, 0.7)',
+            line = list(color = 'rgba(55, 128, 191, 0.7)',
+            width = 2)))%>%
+  add_trace(player, x = ~week, y = ~passing_yards,
+            type = 'bar',
+            name = "PASSING",
+            marker = list(color = 'rgba(55, 128, 191, 0.7)',
+            line = list(color = 'rgba(55, 128, 191, 0.7)',
+            width = 2))) %>%
+  add_trace(player, x = ~week, y = ~fpts_hppr,
+            type = "scatter",
+            mode = "lines",
+            name = "FPTS",
+            # color = I("green"),
+            line = list(color = 'rgba(0, 0, 0, 1)',
+                        width = 4)) %>%
+  # add_segments(x = min(~week), xend = max(~week), y = ~rush_per_game, yend = ~rush_per_game) %>%
+  layout(barmode = "stack")
 
-rosters2$name_abbr <- paste0(substr(rosters$first_name, start = 1, stop = 1), ".")
-rosters2$player_name <- paste0(rosters2$name_abbr, rosters2$last_name)
+# PLAYER PROFILE INFO FUNCTION
+install.packages("ggimage")
 
-player <- left_join(player, select(rosters2, position, full_name, gsis_id), by = c("player_id" = "gsis_id"))
+p1 <- player_data(season, "Tom Brady")
 
-dt <- player %>%
-  group_by(full_name) %>%
-  summarise(across(6:39, sum))
+ggplot(p1, aes(x = week, y = week)) +
+  ggimage::geom_image(aes(image = headshot_url))
 
-DT::datatable(dt)
+# Headshot
+ggplot()
+
+
+
+
+
+
+
+
+
+
 
 # find position rank
-position_rank <- player %>%
-  group_by(position, full_name) %>%
-  filter(week >= 1, week <= 16) %>%
+position_rank <- season %>%
+  filter(position == tmp1)
+  group_by(player_id) %>%
+  filter(week >= 4, week <= 10) %>%
   mutate(total_fpts = sum(fpts_hppr)) %>%
-  filter(position == "QB") %>%
   group_by(full_name) %>%
   slice(n = 1) %>%
   arrange(-total_fpts) %>%
   ungroup() %>%
   mutate(rank = 1:n())
 
-player2 <- player %>%
-  filter(full_name == "Dalvin Cook") %>%
-  select(1:5, 8, 20, 28, 37:40)
+# player2 <- season %>%
+#   filter(full_name == "Dalvin Cook") %>%
+#   select(1:5, 8, 20, 28, 37:40)
 
 plot_ly(player2, x = ~week, y = ~rushing_yards, type = 'bar',
         textposition = 'auto',
@@ -200,6 +244,10 @@ fantasy <- load_pbp(2020) %>%
 
 
 
+  # names <- substr(rosters$first_name, start = 1, stop = 1)
+  # rosters2 <- rosters
+  # rosters2$name_abbr <- paste0(substr(rosters$first_name, start = 1, stop = 1), ".")
+  # rosters2$player_name <- paste0(rosters2$name_abbr, rosters2$last_name)
 
 
 

@@ -40,9 +40,146 @@ source('helper.R')
 season <<- reactive({
   dataset <- load_data(as.numeric(input$seasonDropdown))
 })
+```
 
-# names <- unique(season$full_name)
+Player stats {data-icon="fa-tint"}
+====================================
 
+Inputs {.sidebar}
+-------------------------------------
+
+### Filters
+```{r}
+# dqshiny::autocomplete_input("auto", "Search for a County:",
+#                                 value = "",
+#                                 max_options = 5,
+#                                 options = list(season()$full_name))
+
+selectInput("seasonDropdown",
+            label = "Season", 
+            choices = c("All", 2020:1999))
+
+selectInput("positionDropdown",
+            label = "Position", 
+            choices = c("All", "QB", "RB", "WR", "TE"))
+
+uiOutput("playerSelector")
+
+# Input: Specification of range within an interval ----
+sliderInput("weekRange", "Week",
+                  min = 1, max = 16,
+                  value = c(1, 16))
+
+verbatimTextOutput("seasonDropdownText")
+
+verbatimTextOutput("positionDropdownText")
+
+verbatimTextOutput("playerSearchText")
+
+verbatimTextOutput("weekRangeText")
+```
+
+```{r context = "server"}
+# TESTING INPUTS + ACTION BUTTON REACTIVITY
+seasonText <- eventReactive(input$submitButton, {
+    paste0("Season: ", input$seasonDropdown)
+  })
+
+output$seasonDropdownText <- renderText({
+   seasonText()
+  })
+
+positionText <- eventReactive(input$submitButton, {
+    paste0("Position: ", input$positionDropdown)
+  })
+  
+output$positionDropdownText <- renderText({
+   positionText()
+  })
+
+playerText <- eventReactive(input$submitButton, {
+    paste0("Player: ", input$playerSearch)
+  })
+  
+output$playerSearchText <- renderText({
+   playerText()
+  })
+
+weekRangeText <- eventReactive(input$submitButton, {
+    paste0("Week: ", input$weekRange[1], input$weekRange[2])
+  })
+  
+output$weekRangeText <- renderText({
+   weekRangeText()
+  })
+
+```
+
+### **Submit**
+```{r}
+shiny::actionButton("submitButton", label = "Enter", icon("search"))
+```
+
+Row
+----------------------------------------
+### Player plot
+```{r}
+plotlyOutput("playerGraph")
+```
+
+```{r context="server"}
+playerData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+    df <- season()
+    df <- player_data(df, input$playerSearch)
+    make_player_plot(df)
+  }
+})
+
+output$playerGraph <- renderPlotly({
+  playerData()
+})
+```
+
+### Player Profile
+```{r}
+# htmlOutput("profilePic")
+```
+
+```{r context = "server"}
+# headshotPic <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else {
+#     df <- season()
+#     df <- player_data(df, input$playerSearch)
+#     output$profilePic <- renderImage({
+#         list(src = df$headshot_url,
+#           contentType = 'image/png',
+#           width = 224,
+#           height = 136,
+#           alt = "This is image alternate text")
+#       })
+#     }
+# })
+# output$profilePic <- renderImage({
+#     list(src = ,
+#      contentType = 'image/png',
+#      width = 224,
+#      height = 136,
+#      alt = "This is image alternate text")
+```
+
+Row
+----------------------------------------
+### Data table
+```{r}
+DTOutput("seasonDT")
+```
+
+```{r context="server"}
 output$playerSelector <- renderUI({
   df2 <- season()
    selectInput("playerSearch", "Choose name:", as.list(df2$full_name), multiple= TRUE, selectize = TRUE)
@@ -79,80 +216,13 @@ output$seasonDT <- renderDT({
 
 
 
-Player stats {data-icon="fa-tint"}
-====================================
 
-Inputs {.sidebar}
--------------------------------------
 
-### Filters
-```{r}
-# dqshiny::autocomplete_input("auto", "Search for a County:",
-#                                 value = "",
-#                                 max_options = 5,
-#                                 options = list(season()$full_name))
 
-selectInput("seasonDropdown",
-            label = "Season", 
-            choices = c("All", 2020:1999))
 
-selectInput("positionDropdown",
-            label = "Position", 
-            choices = c("All", "QB", "RB", "WR", "TE"))
 
-# selectInput("playerSearch",
-#             label = "Player",
-#             choices = df2$full_name,
-#             multiple= TRUE, selectize = TRUE)
 
-uiOutput("playerSelector")
 
-verbatimTextOutput("seasonDropdownText")
-
-verbatimTextOutput("positionDropdownText")
-
-verbatimTextOutput("playerSearchText")
-```
-
-```{r context = "server"}
-# TESTING INPUTS + ACTION BUTTON REACTIVITY
-seasonText <- eventReactive(input$submitButton, {
-    paste0("Season: ", input$seasonDropdown)
-  })
-
-output$seasonDropdownText <- renderText({
-   seasonText()
-  })
-
-positionText <- eventReactive(input$submitButton, {
-    paste0("Position: ", input$positionDropdown)
-  })
-  
-output$positionDropdownText <- renderText({
-   positionText()
-  })
-
-playerText <- eventReactive(input$submitButton, {
-    paste0("Player: ", input$playerSearch)
-  })
-  
-output$playerSearchText <- renderText({
-   playerText()
-  })
-
-```
-
-### **Submit**
-```{r}
-shiny::actionButton("submitButton", label = "Enter", icon("search"))
-```
-
-Row
-----------------------------------------
-### Data table
-```{r}
-DTOutput("seasonDT")
-```
 
 ```{r context = "server"}
 # seasonData <- eventReactive(input$submitButton, {
