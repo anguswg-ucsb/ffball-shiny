@@ -72,7 +72,10 @@ make_player_plot <- function(df) {
     layout(barmode = "stack")
 }
 
-
+# Deals with grouping of NULL data when start has no data
+if_is_empty <- function(i){
+  is.null(need(i, message = FALSE)
+          )}
 
 
 # myData <- read.csv("my_csv_file_path.csv", row.names=NULL, na.strings="", stringsAsFactors=FALSE)

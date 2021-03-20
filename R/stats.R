@@ -8,24 +8,25 @@ library(plotly)
 season <- load_data(2020)
 
 # Get player stats to plot --- FPTS + RUSH + PASS + REC YARDS IN EACH GAME FOR GIVEN WEEKS
-  filter(full_name == "Lamar Jackson") %>%
-  select(1:5, 42, 8, 20, 28, 37:40) %>%
-  # filter(week >= 4, week <= 10) %>%
-  mutate(rush_per_game = (sum(rushing_yards)/nrow(.)),
-         rec_per_game = (sum(receiving_yards)/nrow(.)),
-         pass_per_game = (sum(passing_yards)/nrow(.)),
-         fpts_per_game = (sum(fpts_hppr)/nrow(.)))
-
-player_data <- function(df_season, name) {
-  player2 <- df_season %>%
-  filter(full_name == as.character(name)) %>%
-  select(1:5, 42, 8, 20, 28, 37:40) %>%
-  # filter(week >= 4, week <= 10) %>%
-  mutate(rush_per_game = (sum(rushing_yards)/nrow(.)),
-         rec_per_game = (sum(receiving_yards)/nrow(.)),
-         pass_per_game = (sum(passing_yards)/nrow(.)),
-         fpts_per_game = (sum(fpts_hppr)/nrow(.)))
-}
+# player
+#   filter(full_name == "Lamar Jackson") %>%
+#   select(1:5, 42, 8, 20, 28, 37:40) %>%
+#   filter(week >= 4, week <= 10) %>%
+#   mutate(rush_per_game = (sum(rushing_yards)/nrow(.)),
+#          rec_per_game = (sum(receiving_yards)/nrow(.)),
+#          pass_per_game = (sum(passing_yards)/nrow(.)),
+#          fpts_per_game = (sum(fpts_hppr)/nrow(.)))
+#
+# player_data <- function(df_season, name) {
+#   player2 <- df_season %>%
+#   filter(full_name == as.character(name)) %>%
+#   select(1:5, 42, 8, 20, 28, 37:40) %>%
+#   # filter(week >= 4, week <= 10) %>%
+#   mutate(rush_per_game = (sum(rushing_yards)/nrow(.)),
+#          rec_per_game = (sum(receiving_yards)/nrow(.)),
+#          pass_per_game = (sum(passing_yards)/nrow(.)),
+#          fpts_per_game = (sum(fpts_hppr)/nrow(.)))
+# }
 
 
 
@@ -60,36 +61,60 @@ plot_ly(player, x = ~week, y = ~rushing_yards,
   layout(barmode = "stack")
 
 # PLAYER PROFILE INFO FUNCTION
-install.packages("ggimage")
 
-p1 <- player_data(season, "Tom Brady")
+
 
 ggplot(p1, aes(x = week, y = week)) +
   ggimage::geom_image(aes(image = headshot_url))
 
 
 
-
-
-
-
-
-
-
-
+p1 <- player_data(season, "Kyler Murray", 1, 16)
+p2 <- player_data(season, "Josh Jacobs", 1, 16)
+p3 <- player_data(season, "Tom Brady", 1, 16)
 
 # find position rank
-position_rank <- season %>%
-  filter(position == tmp1)
+ranked <- season %>%
+  filter(position == p1$position[1]) %>%
+  filter(week >= 1, week <= 16) %>%
   group_by(player_id) %>%
-  filter(week >= 4, week <= 10) %>%
-  mutate(total_fpts = sum(fpts_hppr)) %>%
-  group_by(full_name) %>%
+  add_count() %>%
+  mutate(total_fpts = sum(fpts_hppr),
+         total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+         fpts_pg = total_fpts/n) %>%
   slice(n = 1) %>%
+  arrange(-fpts_pg) %>%
+  ungroup() %>%
+  mutate(rank = 1:n(), max = max(fpts_pg), med = median(fpts_pg), min = min(fpts_pg)) %>%
+  filter(player_id == p1$player_id[1]) %>%
+  select(fpts_pg, max, med, min) %>%
+  round(2)
+
+max(ranked$fpts_pg)
+
+m <- filter(ranked, player_id == p1$player_id[1])
+n <-
+
+p_rank <- ranked %>%
+  filter(player_id == p2$player_id[1]) %>%
+  select(rank)
+
+
+tot_fpts_rank <- ranked %>%
   arrange(-total_fpts) %>%
   ungroup() %>%
   mutate(rank = 1:n())
 
+fppg_rank <- ranked %>%
+  filter(n >= 5) %>%
+  arrange(-fpts_pg) %>%
+  ungroup() %>%
+  mutate(rank = 1:n())
+
+tds_rank <- ranked %>%
+  arrange(-total_tds) %>%
+  ungroup() %>%
+  mutate(rank = 1:n())
 # player2 <- season %>%
 #   filter(full_name == "Dalvin Cook") %>%
 #   select(1:5, 8, 20, 28, 37:40)

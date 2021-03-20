@@ -40,6 +40,10 @@ source('helper.R')
 season <<- reactive({
   dataset <- load_data(as.numeric(input$seasonDropdown))
 })
+
+player1 <- reactive({
+  df2 <- player_data(season(), input$playerSearch, input$weekRange[1], input$weekRange[2])
+})
 ```
 
 Player stats {data-icon="fa-tint"}
@@ -112,13 +116,191 @@ weekRangeText <- eventReactive(input$submitButton, {
 output$weekRangeText <- renderText({
    weekRangeText()
   })
-
 ```
 
 ### **Submit**
 ```{r}
 shiny::actionButton("submitButton", label = "Enter", icon("search"))
 ```
+
+Row
+----------------------------------------
+### Position rank
+```{r}
+valueBoxOutput("positionRankBox")
+```
+
+### FPTS/game rank
+```{r}
+# valueBoxOutput("fppgRankBox")
+```
+
+### FPTS/game value
+```{r}
+valueBoxOutput("fppgBox")
+```
+
+### FPTS/game
+```{r}
+gaugeOutput("fppgGauge")
+```
+ 
+```{r context="server"}
+# Total FPTS positional rank during period
+positionRank <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+      NULL
+  } else {
+      # df <- season()
+      # df <- player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+    df1 <- season()
+    df2 <- player1()
+  # find position rank --- total fpts during period
+    ranks <- df1 %>%
+      filter(position == df2$position[1]) %>%
+      filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+      group_by(player_id) %>%
+      add_count() %>%
+      mutate(total_fpts = sum(fpts_hppr),
+             total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+             fpts_pg = total_fpts/n) %>%
+      slice(n = 1) %>%
+      arrange(-total_fpts) %>%
+      ungroup() %>%
+      mutate(rank = 1:n()) %>% 
+      filter(player_id == df2$player_id[1]) %>%
+      select(rank)
+      # select(1:5, 39:47, 6:38)
+  }
+})
+
+# Output position Rank value box to UI
+output$positionRankBox <- renderValueBox({
+  valueBox(positionRank(), 
+           caption = "Positional rank")
+})
+```
+
+```{r context = "server"}
+# FPTS/Game positional rank during period
+# fppgRank <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#       NULL
+#   } else {
+#       # df <- season()
+#       # df <- player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+#     df1 <- season()
+#     df2 <- player1()
+#   # find position rank --- total fpts during period
+#     ranks <- df1 %>%
+#       filter(position == df2$position[1]) %>%
+#       filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+#       group_by(player_id) %>%
+#       add_count() %>%
+#       mutate(total_fpts = sum(fpts_hppr),
+#              total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+#              fpts_pg = total_fpts/n) %>%
+#       slice(n = 1) %>%
+#       filter(n >= 5) %>%
+#       arrange(-fpts_pg) 
+#       ungroup() %>%
+#       mutate(rank = 1:n()) %>% 
+#       filter(player_id == df2$player_id[1]) %>%
+#       select(rank)
+#     
+#   }
+# })
+# 
+# # Output positional Fantasy points per game ranking value box to UI
+# output$fppgRankBox <- renderValueBox({
+#   valueBox(fppgRank(), 
+#            caption = "FPTS/Game rank")
+# })
+```
+
+```{r context="server"}
+# FPTS/Game number during period
+fppgValue <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+      NULL
+  } else {
+      df1 <- season()
+      df2 <- player1()
+  # find position rank --- total fpts during period
+      ranks <- df1 %>%
+        filter(position == df2$position[1]) %>%
+        filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+        group_by(player_id) %>%
+        add_count() %>%
+        mutate(total_fpts = sum(fpts_hppr),
+               total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+               fpts_pg = total_fpts/n) %>%
+        slice(n = 1) %>%
+        arrange(-fpts_pg) %>%
+        ungroup() %>%
+        mutate(rank = 1:n()) %>%
+        filter(player_id == df2$player_id[1]) %>%
+        select(fpts_pg) %>% 
+        round(2)
+  }
+})
+
+# Output position Rank value box to UI
+output$fppgBox <- renderValueBox({
+  valueBox(fppgValue(), 
+           caption = "FPTS/game")
+})
+```
+
+```{r}
+fppgGaugeValue <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+      NULL
+  } else {
+      df1 <- season()
+      df2 <- player1()
+  # find position rank --- total fpts during period
+      ranks <- df1 %>%
+        filter(position == df2$position[1]) %>%
+        filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+        group_by(player_id) %>%
+        add_count() %>%
+        mutate(total_fpts = sum(fpts_hppr),
+               total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+               fpts_pg = total_fpts/n) %>%
+        slice(n = 1) %>%
+        arrange(-fpts_pg) %>%
+        ungroup() %>%
+        mutate(rank = 1:n()) %>%
+        filter(player_id == df2$player_id[1]) %>%
+        select(fpts_pg) %>% 
+        round(2)
+        # mutate(rank = 1:n(),
+        #        max = max(fpts_pg),
+        #        med = median(fpts_pg),
+        #        min = min(fpts_pg)) %>%
+        # filter(player_id == df2$player_id[1]) %>%
+        # select(fpts_pg, min, max, med) %>%
+        # round(2)
+  }
+})
+
+output$fppgGauge <- renderGauge({
+  df <- fppgGaugeValue()
+  
+  gauge(df$fpts_pg, min = 0, max = 35,
+        gaugeSectors(
+  success = c(16, 35),
+  warning = c(11, 15),
+  danger = c(0, 10)))
+  # gauge(df[1], min = df[2], max = df[3],
+  #       gaugeSectors(
+  # success = c(df[4], df[3]),
+  # warning = c(((df[4] - df[2])/2 + 1), (df[4]-1)),
+  # danger = c(df[2], ((df[4] - df[2])/2))))
+})
+```
+
 
 Row
 ----------------------------------------
@@ -182,7 +364,10 @@ DTOutput("seasonDT")
 ```{r context="server"}
 output$playerSelector <- renderUI({
   df2 <- season()
-   selectInput("playerSearch", "Choose name:", as.list(df2$full_name), multiple= TRUE, selectize = TRUE)
+   selectInput("playerSearch", "Choose name:", 
+               as.list(df2$full_name),
+               multiple= FALSE,
+               selectize = TRUE)
 })
 
 seasonData <- eventReactive(input$submitButton, {
