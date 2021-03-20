@@ -75,7 +75,7 @@ p3 <- player_data(season, "Tom Brady", 1, 16)
 
 # find position rank
 ranked <- season %>%
-  filter(position == p1$position[1]) %>%
+  filter(position == p2$position[1]) %>%
   filter(week >= 1, week <= 16) %>%
   group_by(player_id) %>%
   add_count() %>%
@@ -85,13 +85,31 @@ ranked <- season %>%
   slice(n = 1) %>%
   arrange(-fpts_pg) %>%
   ungroup() %>%
-  mutate(rank = 1:n(), max = max(fpts_pg), med = median(fpts_pg), min = min(fpts_pg)) %>%
+  mutate(rank = 1:n(),
+         max = max(fpts_pg),
+         med = median(fpts_pg),
+         min = min(fpts_pg)) %>%
   filter(player_id == p1$player_id[1]) %>%
-  select(fpts_pg, max, med, min) %>%
+  select(fpts_pg, min, max, med) %>%
   round(2)
+library(highcharter)
+ranks2$full_name2 <- factor(ranks2$full_name)
 
+highchart() %>%
+  hc_add_series(ranks2, type = "column", hcaes(x = full_name, y = fpts_pg)) %>%
+  hc_xAxis(categories = ranks2$full_name)
+
+ranks2 <- ranked %>%
+  filter(n >= 5) %>%
+  slice(n = 1:24)
+
+ggplot(ranks2, aes(x = reorder(full_name, -fpts_pg), y = fpts_pg)) +
+  geom_col()
+
+ranked$med
+(ranked[4] - ranked[2]) /2
 max(ranked$fpts_pg)
-
+((ranked[4] - ranked[2])/2) + 1
 m <- filter(ranked, player_id == p1$player_id[1])
 n <-
 

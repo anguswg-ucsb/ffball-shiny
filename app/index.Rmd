@@ -25,6 +25,7 @@ library(dplyr)
 library(tidyr)
 library(DT)
 library(plotly)
+library(highcharter)
 
 source('helper.R')
 
@@ -271,33 +272,34 @@ fppgGaugeValue <- eventReactive(input$submitButton, {
         slice(n = 1) %>%
         arrange(-fpts_pg) %>%
         ungroup() %>%
-        mutate(rank = 1:n()) %>%
-        filter(player_id == df2$player_id[1]) %>%
-        select(fpts_pg) %>% 
-        round(2)
-        # mutate(rank = 1:n(),
-        #        max = max(fpts_pg),
-        #        med = median(fpts_pg),
-        #        min = min(fpts_pg)) %>%
+        # mutate(rank = 1:n()) %>%
         # filter(player_id == df2$player_id[1]) %>%
-        # select(fpts_pg, min, max, med) %>%
+        # select(fpts_pg) %>% 
         # round(2)
+        filter(n >= 5) %>% 
+        mutate(rank = 1:n(),
+               max = max(fpts_pg),
+               med = median(fpts_pg),
+               min = min(fpts_pg)) %>%
+        filter(player_id == df2$player_id[1]) %>%
+        select(fpts_pg, min, max, med) %>%
+        round(2)
   }
 })
 
 output$fppgGauge <- renderGauge({
   df <- fppgGaugeValue()
   
-  gauge(df$fpts_pg, min = 0, max = 35,
-        gaugeSectors(
-  success = c(16, 35),
-  warning = c(11, 15),
-  danger = c(0, 10)))
-  # gauge(df[1], min = df[2], max = df[3],
+  gauge(df$fpts_pg, min = 0, max = df$max,
   #       gaugeSectors(
-  # success = c(df[4], df[3]),
-  # warning = c(((df[4] - df[2])/2 + 1), (df[4]-1)),
-  # danger = c(df[2], ((df[4] - df[2])/2))))
+  # success = c(16, 35),
+  # warning = c(11, 15),
+  # danger = c(0, 10)))
+  # gauge(df[1], min = df[2], max = df[3],
+        gaugeSectors(
+  success = c(df$med, df$max),
+  warning = c(((df$med - df$min)/2 + 1), (df$med-1)),
+  danger = c(df$min, ((df$med - df$min)/2))))
 })
 ```
 
@@ -307,6 +309,45 @@ Row
 ### Player plot
 ```{r}
 plotlyOutput("playerGraph")
+```
+
+### Player Profile
+```{r}
+highchartOutput("positionRankGraph")
+```
+
+```{r context = "server"}
+posRankData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+    df1 <- season()
+    df2 <- player1()
+
+    ranks <- df1 %>%
+        filter(position == df2$position[1]) %>%
+        filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+        group_by(player_id) %>%
+        add_count() %>%
+        mutate(total_fpts = sum(fpts_hppr),
+               total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+               fpts_pg = total_fpts/n) %>%
+        slice(n = 1) %>%
+        arrange(-fpts_pg) %>%
+        ungroup() %>%
+        filter(n >= 5)
+        round(2) %>%
+        slice(n = 1:24)
+        
+    highchart() %>%
+        hc_add_series(ranks, type = "column", hcaes(x = full_name, y = fpts_pg)) %>%
+        hc_xAxis(categories = ranks$full_name)
+    }
+})
+
+output$positionRankGraph <- renderHighchart({
+        posRankData()
+      })
 ```
 
 ```{r context="server"}
@@ -323,35 +364,6 @@ playerData <- eventReactive(input$submitButton, {
 output$playerGraph <- renderPlotly({
   playerData()
 })
-```
-
-### Player Profile
-```{r}
-# htmlOutput("profilePic")
-```
-
-```{r context = "server"}
-# headshotPic <- eventReactive(input$submitButton, {
-#   if(is.null(input$playerSearch)) {
-#     NULL
-#   } else {
-#     df <- season()
-#     df <- player_data(df, input$playerSearch)
-#     output$profilePic <- renderImage({
-#         list(src = df$headshot_url,
-#           contentType = 'image/png',
-#           width = 224,
-#           height = 136,
-#           alt = "This is image alternate text")
-#       })
-#     }
-# })
-# output$profilePic <- renderImage({
-#     list(src = ,
-#      contentType = 'image/png',
-#      width = 224,
-#      height = 136,
-#      alt = "This is image alternate text")
 ```
 
 Row
@@ -399,7 +411,34 @@ output$seasonDT <- renderDT({
 #              })
 ```
 
+### Player Profile
+```{r}
+# htmlOutput("profilePic")
+```
 
+```{r context = "server"}
+# headshotPic <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else {
+#     df <- season()
+#     df <- player_data(df, input$playerSearch)
+#     output$profilePic <- renderImage({
+#         list(src = df$headshot_url,
+#           contentType = 'image/png',
+#           width = 224,
+#           height = 136,
+#           alt = "This is image alternate text")
+#       })
+#     }
+# })
+# output$profilePic <- renderImage({
+#     list(src = ,
+#      contentType = 'image/png',
+#      width = 224,
+#      height = 136,
+#      alt = "This is image alternate text")
+```
 
 
 
