@@ -6,7 +6,7 @@ output:
     navbar:
       - { icon: "fa-question-circle", href: "https://water.noaa.gov/about/nwm", align: right }
     theme: cerulean
-    orientation: rows
+    orientation: Rows
     vertical_layout: fill
 ---
 
@@ -26,6 +26,7 @@ library(tidyr)
 library(DT)
 library(plotly)
 library(highcharter)
+library(billboarder)
 
 source('helper.R')
 
@@ -43,7 +44,7 @@ season <<- reactive({
 })
 
 player1 <- reactive({
-  df2 <- player_data(season(), input$playerSearch, input$weekRange[1], input$weekRange[2])
+  df2 <- get_player_data(season(), input$playerSearch, input$weekRange[1], input$weekRange[2])
 })
 ```
 
@@ -69,6 +70,8 @@ selectInput("positionDropdown",
             choices = c("All", "QB", "RB", "WR", "TE"))
 
 uiOutput("playerSelector")
+
+# uiOutput("variableSelect")
 
 # Input: Specification of range within an interval ----
 sliderInput("weekRange", "Week",
@@ -131,11 +134,6 @@ Row
 valueBoxOutput("positionRankBox")
 ```
 
-### FPTS/game rank
-```{r}
-# valueBoxOutput("fppgRankBox")
-```
-
 ### FPTS/game value
 ```{r}
 valueBoxOutput("fppgBox")
@@ -153,7 +151,7 @@ positionRank <- eventReactive(input$submitButton, {
       NULL
   } else {
       # df <- season()
-      # df <- player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+      # df <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
     df1 <- season()
     df2 <- player1()
   # find position rank --- total fpts during period
@@ -182,42 +180,6 @@ output$positionRankBox <- renderValueBox({
 })
 ```
 
-```{r context = "server"}
-# FPTS/Game positional rank during period
-# fppgRank <- eventReactive(input$submitButton, {
-#   if(is.null(input$playerSearch)) {
-#       NULL
-#   } else {
-#       # df <- season()
-#       # df <- player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
-#     df1 <- season()
-#     df2 <- player1()
-#   # find position rank --- total fpts during period
-#     ranks <- df1 %>%
-#       filter(position == df2$position[1]) %>%
-#       filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
-#       group_by(player_id) %>%
-#       add_count() %>%
-#       mutate(total_fpts = sum(fpts_hppr),
-#              total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
-#              fpts_pg = total_fpts/n) %>%
-#       slice(n = 1) %>%
-#       filter(n >= 5) %>%
-#       arrange(-fpts_pg) 
-#       ungroup() %>%
-#       mutate(rank = 1:n()) %>% 
-#       filter(player_id == df2$player_id[1]) %>%
-#       select(rank)
-#     
-#   }
-# })
-# 
-# # Output positional Fantasy points per game ranking value box to UI
-# output$fppgRankBox <- renderValueBox({
-#   valueBox(fppgRank(), 
-#            caption = "FPTS/Game rank")
-# })
-```
 
 ```{r context="server"}
 # FPTS/Game number during period
@@ -304,50 +266,16 @@ output$fppgGauge <- renderGauge({
 ```
 
 
-Row
+Row {.tabset}
 ----------------------------------------
-### Player plot
+### Yards/FPTS game log
 ```{r}
 plotlyOutput("playerGraph")
 ```
 
-### Player Profile
+### Targets/receptions 
 ```{r}
-highchartOutput("positionRankGraph")
-```
-
-```{r context = "server"}
-posRankData <- eventReactive(input$submitButton, {
-  if(is.null(input$playerSearch)) {
-    NULL
-  } else {
-    df1 <- season()
-    df2 <- player1()
-
-    ranks <- df1 %>%
-        filter(position == df2$position[1]) %>%
-        filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
-        group_by(player_id) %>%
-        add_count() %>%
-        mutate(total_fpts = sum(fpts_hppr),
-               total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
-               fpts_pg = total_fpts/n) %>%
-        slice(n = 1) %>%
-        arrange(-fpts_pg) %>%
-        ungroup() %>%
-        filter(n >= 5)
-        round(2) %>%
-        slice(n = 1:24)
-        
-    highchart() %>%
-        hc_add_series(ranks, type = "column", hcaes(x = full_name, y = fpts_pg)) %>%
-        hc_xAxis(categories = ranks$full_name)
-    }
-})
-
-output$positionRankGraph <- renderHighchart({
-        posRankData()
-      })
+billboarderOutput('targetsGraph')
 ```
 
 ```{r context="server"}
@@ -356,7 +284,7 @@ playerData <- eventReactive(input$submitButton, {
     NULL
   } else {
     df <- season()
-    df <- player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+    df <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
     make_player_plot(df)
   }
 })
@@ -364,10 +292,123 @@ playerData <- eventReactive(input$submitButton, {
 output$playerGraph <- renderPlotly({
   playerData()
 })
+
+targetData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+      df <- season()
+      df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+# pivot longer for billboarder plot
+      df1 <- df1 %>%
+        pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
+
+      billboarder() %>%
+        bb_barchart(data = df1,
+                    mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
+  }
+})
+
+output$targetsGraph <- renderBillboarder({
+  targetData()
+})
 ```
 
-Row
-----------------------------------------
+
+Row {.tabset}
+------------------------------------
+### FPTS position Ranking
+```{r}
+billboarderOutput("positionRankGraph")
+```
+
+### Targets/receptions Ranking
+```{r}
+billboarderOutput('targetsRankGraph')
+```
+
+```{r context = "server"}
+posRankData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+      df1 <- season()
+      df2 <- player1()
+  
+      rank_fpts <- df1 %>%
+          filter(position == df2$position[1]) %>%
+          filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+          group_by(player_id) %>%
+          add_count() %>%
+          mutate(tot_fpts = sum(fpts_hppr),
+                 tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+                 tot_recept = sum(receptions),
+                 tot_targ = sum(targets),
+                 fpts_pg = tot_fpts/n,
+                 targ_pg = tot_targ/n,
+                 recept_pg = tot_recept/n) %>%
+          slice(n = 1) %>%
+          arrange(-fpts_pg) %>%
+          ungroup() %>%
+          filter(n >= 5) %>%
+          slice(n = 1:24)
+      rank_fpts$fpts_pg <- round(rank_fpts$fpts_pg, 2)
+    
+      billboarder() %>%
+          bb_barchart(data = rank_fpts,
+              mapping = bbaes(x = full_name, y = fpts_pg))
+    }
+})
+
+output$positionRankGraph <- renderBillboarder({
+        posRankData()
+      })
+
+targetRankData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+      df1 <- season()
+      df2 <- player1()
+      
+      rank_targ <- df1 %>%
+          filter(position == df2$position[1]) %>%
+          filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+          group_by(player_id) %>%
+          add_count() %>%
+          mutate(tot_fpts = sum(fpts_hppr),
+                 tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+                 tot_recept = sum(receptions),
+                 tot_targ = sum(targets),
+                 fpts_pg = tot_fpts/n,
+                 targ_pg = tot_targ/n,
+                 recept_pg = tot_recept/n) %>%
+          slice(n = 1) %>%
+          arrange(-recept_pg) %>%
+          ungroup() %>%
+          mutate(rank = 1:n(),
+                 max = max(recept_pg),
+                 med = median(recept_pg),
+                 min = min(recept_pg)) %>%
+          slice(n = 1:24)
+    
+      # pivot longer for billboarder plot
+      rank_targ <- rank_targ %>%
+          pivot_longer(50:51, names_to = "rcpt_str", values_to = "rcpt_val")
+      # round values to 2 decimals
+      rank_targ$rcpt_val <- round(rank_targ$rcpt_val, 2)
+
+      billboarder() %>%
+          bb_barchart(data = rank_targ,
+              mapping = bbaes(x = full_name, y = rcpt_val, group = rcpt_str))
+    }
+})
+
+output$targetsRankGraph <- renderBillboarder({
+        targetRankData()
+      })
+```
+
 ### Data table
 ```{r}
 DTOutput("seasonDT")
@@ -382,6 +423,14 @@ output$playerSelector <- renderUI({
                selectize = TRUE)
 })
 
+# output$variableSelect <- renderUI({
+#       df2 <- season()
+#       selectInput(inputId = "variableSelect",
+#                   label = "Select target variable",
+#                   choices = as.list(names(df2)), 
+#                   multiple= FALSE,
+#                   selectize = TRUE)
+#     })
 seasonData <- eventReactive(input$submitButton, {
     df <- season()
     if (input$positionDropdown != "All") {
@@ -410,109 +459,3 @@ output$seasonDT <- renderDT({
 #   season$df_data <- load_data(as.numeric(input$seasonDropdown))
 #              })
 ```
-
-### Player Profile
-```{r}
-# htmlOutput("profilePic")
-```
-
-```{r context = "server"}
-# headshotPic <- eventReactive(input$submitButton, {
-#   if(is.null(input$playerSearch)) {
-#     NULL
-#   } else {
-#     df <- season()
-#     df <- player_data(df, input$playerSearch)
-#     output$profilePic <- renderImage({
-#         list(src = df$headshot_url,
-#           contentType = 'image/png',
-#           width = 224,
-#           height = 136,
-#           alt = "This is image alternate text")
-#       })
-#     }
-# })
-# output$profilePic <- renderImage({
-#     list(src = ,
-#      contentType = 'image/png',
-#      width = 224,
-#      height = 136,
-#      alt = "This is image alternate text")
-```
-
-
-
-
-
-
-
-
-
-```{r context = "server"}
-# seasonData <- eventReactive(input$submitButton, {
-#   make_dt(load_data(as.numeric(input$seasonDropdown)))
-#   })
-# 
-# output$seasonDT <- renderDT({
-#    seasonData()
-#   })
-# observeEvent(input$submitButton, {
-#   season$df_data <<- load_data(as.numeric(input$seasonDropdown))
-# })
-
-# season & position inputs output data table
-# seasonData <- eventReactive(input$submitButton, {
-#   df <- season()
-#     season$df_data <<- load_data(as.numeric(input$seasonDropdown))
-#     
-#       if (input$positionDropdown != "All") {
-#           season <- season[season$position == input$positionDropdown,]
-#       }
-# 
-#     #select position, team, full_name to join with summarized season
-#     season2 <- season %>%
-#       select(3, 4, 42, 43)
-# 
-#     season2 <- unique(season2)
-# 
-#     season <- season %>%
-#         group_by(full_name) %>%
-#         summarise(across(6:39, sum))
-#     season <- left_join(season2, season, by = "full_name")
-# 
-#     season <- season %>%
-#       select(4, 1:3, 38, 37, 36, 5:35) %>%
-#       arrange(-fpts_hppr)
-#       datatable(season, options = list(scrollX = TRUE, paging = TRUE, searching = TRUE))
-#   })
-# 
-# output$seasonDT <- renderDT({
-#    seasonData()
-#   })
-
-```
-
-
-
-
-
-```{r}
-# observe(
-#     if(input$auto == ""){
-#       NULL
-#     } else {
-#       FIP <<- input$auto
-#       leafletProxy("covidMap") %>%
-#         zoom_to_county(counties, FIP)
-#       output$covidChart <- renderDygraph({ make_graph(covid19, FIP) })
-#       output$covidTable <- renderDT({ make_table2(today, FIP) })
-#       output$covidNewCases = renderPlotly({ daily_cases_graph(covid19, FIP) })
-#       output$covidNewDeaths <- renderPlotly({ daily_deaths_graph(covid19, FIP) })
-#       leafletProxy("covidMap2") %>%
-#           zoom_to_county(counties, FIP)
-#     })
-
-```
-
-
-

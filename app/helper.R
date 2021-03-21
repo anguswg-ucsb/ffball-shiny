@@ -1,4 +1,6 @@
 
+
+# saveRDS(season,'C:\\Users\\angus\\OneDrive\\Desktop\\github\\ffball-shiny\\app\\nfl-season-2020.rds')
 # Loads play-by-play data and calculates_player_stats for year input
 load_data <- function(year) {
     pbp <- load_pbp(year)
@@ -31,12 +33,29 @@ make_dt <- function(season_df) {
 player_data <- function(df_season, name, start, end) {
   player2 <- df_season %>%
     filter(full_name == as.character(name)) %>%
-    select(1:5, 42, 8, 20, 28, 37:40) %>%
+    select(1, 43, 2:5, 42, 8, 20, 28, 37:40) %>%
     filter(week >= start, week <= end) %>%
     mutate(rush_per_game = (sum(rushing_yards)/nrow(.)),
            rec_per_game = (sum(receiving_yards)/nrow(.)),
            pass_per_game = (sum(passing_yards)/nrow(.)),
            fpts_per_game = (sum(fpts_hppr)/nrow(.)))
+}
+
+get_player_data <- function (df_season, name, start, end) {
+  p1 <- df_season %>%
+    filter(full_name == as.character(name)) %>%
+    select(1, 43, 42, 2:39) %>%
+    filter(week >= start, week <= end) %>%
+    add_count() %>%
+    mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
+           recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
+           pass_yards_pg = (sum(passing_yards)/nrow(.)),
+           fpts_pg = (sum(fpts_hppr)/n),
+           tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+           tot_recept = sum(receptions),
+           tot_targ = sum(targets),
+           targ_pg = tot_targ/n,
+           recept_pg = tot_recept/n)
 }
 
 # plot player_data() data

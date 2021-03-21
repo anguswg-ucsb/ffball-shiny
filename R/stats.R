@@ -3,31 +3,115 @@ library(tidyverse)
 library(nflfastR)
 library(DT)
 library(plotly)
+library(highcharter)
+library(billboarder)
+
+
 
 # LOAD IN SEASON DATA
 season <- load_data(2020)
+# saveRDS(season, file = "data/nfl-season-2020")
 
-# Get player stats to plot --- FPTS + RUSH + PASS + REC YARDS IN EACH GAME FOR GIVEN WEEKS
-# player
-#   filter(full_name == "Lamar Jackson") %>%
-#   select(1:5, 42, 8, 20, 28, 37:40) %>%
-#   filter(week >= 4, week <= 10) %>%
-#   mutate(rush_per_game = (sum(rushing_yards)/nrow(.)),
-#          rec_per_game = (sum(receiving_yards)/nrow(.)),
-#          pass_per_game = (sum(passing_yards)/nrow(.)),
-#          fpts_per_game = (sum(fpts_hppr)/nrow(.)))
-#
-# player_data <- function(df_season, name) {
-#   player2 <- df_season %>%
-#   filter(full_name == as.character(name)) %>%
-#   select(1:5, 42, 8, 20, 28, 37:40) %>%
-#   # filter(week >= 4, week <= 10) %>%
-#   mutate(rush_per_game = (sum(rushing_yards)/nrow(.)),
-#          rec_per_game = (sum(receiving_yards)/nrow(.)),
-#          pass_per_game = (sum(passing_yards)/nrow(.)),
-#          fpts_per_game = (sum(fpts_hppr)/nrow(.)))
-# }
+tmp1 <- player_data(season, "Calvin Ridley", 1, 16)
+tmp2 <- get_player_data(season, "Calvin Ridley", 1, 16)
 
+####### player_data() edits #######
+
+
+########## PLAYER RECEPTIONS + TARGETS ############
+
+p1 <- get_player_data(season, "Calvin Ridley", 1, 16)
+
+# plotly
+plot_ly(p1, x = ~week, y = ~targets,
+        type = 'bar',
+        textposition = 'auto',
+        name = "targets",
+        marker = list(color = 'rgba(219, 64, 82, 0.7)',
+                      line = list(color = 'rgba(219, 64, 82, 1.0)',
+                                  width = 2))) %>%
+  add_trace(p1, x = ~week, y = ~receptions,
+            type = 'bar',
+            name = "receptions",
+            marker = list(color = 'rgba(10, 150, 24, 0.7)',
+                          line = list(color = 'rgba(55, 128, 191, 0.7)',
+                                      width = 2)))
+# highcharter
+highchart() %>%
+  hc_add_series(p1, type = "column", hcaes(x = week, y = targets)) %>%
+  hc_add_series(p1, type = "column", hcaes(x = week, y = receptions)) %>%
+  highcharter::hc_labels()
+  # hc_xAxis(categories = ranks2$full_name)
+
+# pivot longer for billboarder plot
+p2 <- p1 %>%
+  pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
+
+billboarder::billboarder() %>%
+  bb_barchart(data = p2,
+              mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
+
+################# LEAGUE RECEPTIONS + TARGETS RANKS #####################
+
+rank <- season %>%
+  filter(position == p2$position[1]) %>%
+  filter(week >= 1, week <= 16) %>%
+  group_by(player_id) %>%
+  add_count() %>%
+  mutate(tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         fpts_pg = tot_fpts/n,
+         targ_pg = tot_targ/n,
+         recept_pg = tot_recept/n) %>%
+  slice(n = 1) %>%
+  arrange(-recept_pg) %>%
+  ungroup() %>%
+  mutate(rank = 1:n(),
+         max = max(recept_pg),
+         med = median(recept_pg),
+         min = min(recept_pg)) %>%
+  slice(n = 1:36)
+
+# pivot longer for billboarder plot
+rank <- rank %>%
+  pivot_longer(50:51, names_to = "rcpt_str", values_to = "rcpt_val")
+# round values to 2 decimals
+rank$rcpt_val <- round(rank$rcpt_val, 2)
+
+billboarder::billboarder() %>%
+  bb_barchart(data = rank,
+              mapping = bbaes(x = full_name, y = rcpt_val, group = rcpt_str))
+
+highchart() %>%
+  hc_add_series(rank, type = "column", hcaes(x = full_name, y = recept_pg)) %>%
+  hc_add_series(rank, type = "column", hcaes(x = full_name, y = targ_pg)) %>%
+  hc_xAxis(categories = rank$full_name)
+
+################### PLAYER AIR YARDS + RECIEVE YARDS ####################
+p1 <- get_player_data(season, "A.J. Brown", 1, 16)
+air_yards <- p1 %>%
+  pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
+
+billboarder::billboarder() %>%
+  bb_barchart(data = air_yards,
+              mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str)) %>%
+  bb_axis()
+billboarder::ax
+#################### LEAGUE RECEPTIONS + TARGETS RANKS #####################
+
+
+
+
+
+
+
+
+
+# PLAYER AIR YARDS + REC. YARDS
+ggplot(p2, aes(x = week, y = receiving_yards)) +
+  geom_col()
 
 
 # Fantasy points + RUSH YARDS + PASS + REC  in game in weeks
@@ -68,10 +152,55 @@ ggplot(p1, aes(x = week, y = week)) +
   ggimage::geom_image(aes(image = headshot_url))
 
 
+rb1 <- season %>%
+  filter(full_name == "Antonio Gibson") %>%
+  select(1, 43, 42, 2:39) %>%
+  filter(week >= 1, week <= 16) %>%
+  add_count() %>%
+  mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
+         recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
+         pass_yards_pg = (sum(passing_yards)/nrow(.)),
+         fpts_pg = (sum(fpts_hppr)/n),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         recept_pg = tot_recept/n,
+         targ_pg = tot_targ/n)
 
-p1 <- player_data(season, "Kyler Murray", 1, 16)
-p2 <- player_data(season, "Josh Jacobs", 1, 16)
-p3 <- player_data(season, "Tom Brady", 1, 16)
+qb1 <- player_data(season, "Kyler Murray", 1, 16)
+rb1 <- player_data(season, "Josh Jacobs", 1, 16)
+qb2 <- player_data(season, "Tom Brady", 1, 16)
+
+rank_fpts <- season %>%
+  filter(position == rb1$position[1]) %>%
+  filter(week >= 1, week <= 16) %>%
+  group_by(player_id) %>%
+  add_count() %>%
+  mutate(tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         fpts_pg = tot_fpts/n,
+         targ_pg = tot_targ/n,
+         recept_pg = tot_recept/n) %>%
+  slice(n = 1) %>%
+  arrange(-fpts_pg) %>%
+  ungroup() %>%
+  filter(n >= 5) %>%
+  slice(n = 1:30)
+
+rank_fpts$fpts_pg <- round(rank_fpts$fpts_pg, 2)
+# rank_fpts <- rank_fpts %>%
+#   pivot_longer(50:51, names_to = "rcpt_str", values_to = "rcpt_val")
+
+billboarder::billboarder() %>%
+  bb_barchart(data = rank_fpts,
+              mapping = bbaes(x = full_name, y = fpts_pg))
+
+
+highchart() %>%
+  hc_add_series(ranks, type = "column", hcaes(x = full_name, y = fpts_pg)) %>%
+  hc_xAxis(categories = ranks$full_name)
 
 # find position rank
 ranked <- season %>%
@@ -92,7 +221,7 @@ ranked <- season %>%
   filter(player_id == p1$player_id[1]) %>%
   select(fpts_pg, min, max, med) %>%
   round(2)
-library(highcharter)
+
 ranks2$full_name2 <- factor(ranks2$full_name)
 
 highchart() %>%
