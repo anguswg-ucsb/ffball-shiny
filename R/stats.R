@@ -264,9 +264,9 @@ qb_rank <- qb_rank %>%
   round(2)
 
 ############## YARDS PER GAME GAUGE ##############
-rank_yards <- season %>%
-  filter(position == rb1$position[1]) %>%
-  filter(week >= 1, week <= 16) %>%
+rank_pass <- season %>%
+  filter(position == df2$position[1]) %>%
+  filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
   group_by(player_id) %>%
   add_count() %>%
   mutate(tot_fpts = sum(fpts_hppr),
@@ -276,30 +276,28 @@ rank_yards <- season %>%
          fpts_pg = tot_fpts/n,
          targ_pg = tot_targ/n,
          recept_pg = tot_recept/n,
-         yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n) %>%
+         yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+         passyards_pg = sum(passing_yards)/n,
+         td_int_ratio = sum(passing_tds)/sum(interceptions)) %>%
   slice(n = 1) %>%
-  arrange(-yards_pg) %>%
+  arrange(-passyards_pg) %>%
   ungroup() %>%
   filter(n >= 5)
 
-jenks_df <- BAMMtools::getJenksBreaks(rank_yards$yards_pg, 4) %>%
+jenks_df <- BAMMtools::getJenksBreaks(rank_pass$passyards_pg, 4) %>%
   data.frame() %>%
   mutate(brk = letters[1:4]) %>%
   rename(jenk = ".") %>%
   pivot_wider(jenk, names_from = "brk", values_from = "jenk")
 
-rank_yards <- bind_cols(rank_yards, jenks_df)
+rank_pass <- bind_cols(rank_pass, jenks_df)
 
-rank_yards <- rank_yards %>%
-  filter(full_name == "Myles Gaskin") %>%
-  select(yards_pg, a, b, c, d) %>%
+rank_pass <- rank_pass %>%
+  filter(player_id == df2$player_id[1]) %>%
+  select(passyards_pg, a, b, c, d) %>%
   round(2)
 
-filter(player_id == rb1$player_id[1]) %>%
-  select(fpts_pg) %>%
-  round(2)
 
-df2 <- bind_cols(rank_yards, jenks)
 
 library(BAMMtools)
 rm(jenks)
