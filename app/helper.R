@@ -50,13 +50,26 @@ get_player_data <- function (df_season, name, start, end) {
     mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
            recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
            pass_yards_pg = (sum(passing_yards)/nrow(.)),
+           tot_fpts = sum(fpts_hppr),
+           tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+           tot_recept = sum(receptions),
+           tot_targ = sum(targets),
+           tot_carries = sum(carries),
+           tot_touch = tot_recept+ tot_carries,
            fpts_pg = (sum(fpts_hppr)/n),
            tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
            tot_recept = sum(receptions),
            tot_targ = sum(targets),
            targ_pg = tot_targ/n,
            recept_pg = tot_recept/n,
-           avg_dot = receiving_air_yards/targets)
+           avg_dot = receiving_air_yards/targets,
+           carries_pg = tot_carries/n,
+           airyards_pg = sum(receiving_air_yards)/n,
+           fpts_pt = fpts_pg/(recept_pg + carries_pg),
+           yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+           passyards_pg = sum(passing_yards)/n,
+           td_int_ratio = sum(passing_tds)/sum(interceptions),
+           ypc = rushing_yards/carries)
 }
 
 # plot player_data() data

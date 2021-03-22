@@ -19,17 +19,17 @@ tmp2 <- get_player_data(season, "Calvin Ridley", 1, 16)
 
 ########## PLAYER RECEPTIONS + TARGETS ############
 
-p1 <- get_player_data(season, "Calvin Ridley", 1, 16)
+wr1 <- get_player_data(season, "Calvin Ridley", 1, 16)
 
 # plotly
-plot_ly(p1, x = ~week, y = ~targets,
+plot_ly(wr1, x = ~week, y = ~targets,
         type = 'bar',
         textposition = 'auto',
         name = "targets",
         marker = list(color = 'rgba(219, 64, 82, 0.7)',
                       line = list(color = 'rgba(219, 64, 82, 1.0)',
                                   width = 2))) %>%
-  add_trace(p1, x = ~week, y = ~receptions,
+  add_trace(wr1, x = ~week, y = ~receptions,
             type = 'bar',
             name = "receptions",
             marker = list(color = 'rgba(10, 150, 24, 0.7)',
@@ -37,13 +37,13 @@ plot_ly(p1, x = ~week, y = ~targets,
                                       width = 2)))
 # highcharter
 highchart() %>%
-  hc_add_series(p1, type = "column", hcaes(x = week, y = targets)) %>%
-  hc_add_series(p1, type = "column", hcaes(x = week, y = receptions)) %>%
+  hc_add_series(wr1, type = "column", hcaes(x = week, y = targets)) %>%
+  hc_add_series(wr1, type = "column", hcaes(x = week, y = receptions)) %>%
   highcharter::hc_labels()
   # hc_xAxis(categories = ranks2$full_name)
 
 # pivot longer for billboarder plot
-p2 <- p1 %>%
+p2 <- wr1 %>%
   pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
 
 billboarder::billboarder() %>%
@@ -89,20 +89,18 @@ highchart() %>%
   hc_xAxis(categories = rank$full_name)
 
 ################### PLAYER AIR YARDS + RECIEVE YARDS ####################
-p1 <- get_player_data(season, "A.J. Brown", 1, 16)
-air_yards <- p1 %>%
+wr1 <- get_player_data(season, "A.J. Brown", 1, 16)
+air_yards <- wr1 %>%
   pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
 
 billboarder::billboarder() %>%
   bb_barchart(data = air_yards,
               mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
 
-#################### LEAGUE RECEPTIONS + TARGETS RANKS #####################
+####################### LEAGUE AIR YARDS RANK ##########################
 
-
-########### AIR YARDS LEAGUE RANK #############
 rank_airyards <- season %>%
-  filter(position == p1$position[1]) %>%
+  filter(position == wr1$position[1]) %>%
   filter(week >= 1, week <= 16) %>%
   group_by(player_id) %>%
   add_count() %>%
@@ -110,12 +108,19 @@ rank_airyards <- season %>%
          tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
          tot_recept = sum(receptions),
          tot_targ = sum(targets),
+         tot_carries = sum(carries),
+         tot_touch = tot_recept+ tot_carries,
          fpts_pg = tot_fpts/n,
          targ_pg = tot_targ/n,
          recept_pg = tot_recept/n,
-         airyards_pg = sum(receiving_air_yards)/n) %>%
+         carries_pg = tot_carries/n,
+         airyards_pg = sum(receiving_air_yards)/n,
+         fpts_pt = fpts_pg/(recept_pg + carries_pg),
+         yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+         passyards_pg = sum(passing_yards)/n,
+         td_int_ratio = sum(passing_tds)/sum(interceptions)) %>%
   slice(n = 1) %>%
-  filter(n >= 5) %>%
+  filter(tot_touch >= 100 | tot_recept >=60) %>%
   arrange(-airyards_pg) %>%
   ungroup() %>%
   mutate(rank = 1:n(),
@@ -126,7 +131,9 @@ rank_airyards <- season %>%
 
 billboarder::billboarder() %>%
   bb_barchart(data = rank_airyards,
-              mapping = bbaes(x = full_name, y = airyards_pg))
+              mapping = bbaes(x = full_name, y = airyards_pg)) %>%
+  bb_title(text = "AIR YARDS PER GAME") %>%
+  bb_axis(y = list(label = list(text = "YARDS", position = "middle")))
 
 ### bubble chart
 ggplotly(ggplot(rank_airyards, aes(x = fpts_pg, y = airyards_pg)) +
@@ -172,13 +179,17 @@ plot_ly(player, x = ~week, y = ~rushing_yards,
   layout(barmode = "stack")
 
 ################### PLAYER YPC & YARDS AFTER CONTACT ####################
-rb1 <- get_player_data(season, "Dalvin Cook", 1, 16)
-ypc <- rb1 %>%
-  mutate(ypc = rushing_yards/carries)
+rb1 <- get_player_data(season, "Dalvin Cook", 1, 10)
+rb2 <- rb1 %>%
+  mutate(fpts_per_touch = fpts_hppr/(receptions + carries))
+
+rb2 <- rb2 %>%
+  pivot_longer(c(62, 63), names_to = "ypc_str", values_to = "ypc_val")
+
 billboarder::billboarder() %>%
-  bb_barchart(data = ypc,
-              mapping = bbaes(x = week, y = ypc)) %>%
-  bb_linechart(ypc$carries)
+  bb_linechart(data = rb2,
+              mapping = bbaes(x = week, y = ypc_val, group = ypc_str))
+
                # , mapping = bbaes(x = week, y = carries))
 
 
@@ -187,30 +198,41 @@ billboarder::billboarder() %>%
               mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
 
 #################### LEAGUE YPC & YARDS AFTER CONTACT #####################
-hist(rank_ypc$std)
+
 rank_ypc <- season %>%
-  filter(position == rb1$position[1]) %>%
+  filter(position == "WR") %>%
   filter(week >= 1, week <= 16) %>%
   group_by(player_id) %>%
   add_count() %>%
-  mutate(tot_fpts = sum(fpts_hppr),
-         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
-         tot_recept = sum(receptions),
-         tot_targ = sum(targets),
-         fpts_pg = tot_fpts/n,
-         targ_pg = tot_targ/n,
-         recept_pg = tot_recept/n,
-         ypc = rushing_yards/carries,
-         tot_carries = sum(carries)) %>%
+  mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
+          recieve_yards_pg = (sum(receiving_yards)/nrow(.)), pass_yards_pg = (sum(passing_yards)/nrow(.)), tot_fpts = sum(fpts_hppr),
+          tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+          tot_recept = sum(receptions), tot_targ = sum(targets), tot_carries = sum(carries), tot_touch = tot_recept+ tot_carries, fpts_pg = (sum(fpts_hppr)/n), tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds), tot_recept = sum(receptions),
+          tot_targ = sum(targets), targ_pg = tot_targ/n,  recept_pg = tot_recept/n, avg_dot = receiving_air_yards/targets,carries_pg = tot_carries/n,airyards_pg = sum(receiving_air_yards)/n, fpts_pt = fpts_pg/(recept_pg + carries_pg),
+          yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+          passyards_pg = sum(passing_yards)/n,  td_int_ratio = sum(passing_tds)/sum(interceptions), ypc = rushing_yards/carries) %>%
+  # mutate(tot_fpts = sum(fpts_hppr),
+  #        tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+  #        tot_recept = sum(receptions),
+  #        tot_targ = sum(targets),
+  #        fpts_pg = tot_fpts/n,
+  #        targ_pg = tot_targ/n,
+  #        recept_pg = tot_recept/n,
+  #        ypc = rushing_yards/carries,
+  #        tot_carries = sum(carries)) %>%
 ungroup() %>%
          mutate(total_carries = sum(carries), std = abs(tot_carries - mean(tot_carries)) / sd(tot_carries)) %>%
-  filter(std >= 0.6, tot_carries >= 150) %>%
+  # filter(std >= 0.6, tot_carries >= 150) %>%
 group_by(player_id) %>%
   slice(n = 1) %>%
   arrange(-ypc) %>%
   ungroup()
 
-rank_ypc2 <- season %>%
+lmYPC <- lm(fpts_pg~airyards_pg, data = rank_ypc)
+
+summary(lmYPC)
+
+ rank_ypc2 <- season %>%
   filter(position == rb1$position[1]) %>%
   filter(week >= 1, week <= 16) %>%
   group_by(player_id) %>%
@@ -317,7 +339,7 @@ jenk_df <- data.frame(jenks) %>%
 jenks[1]
 
 
-ggplot(p1, aes(x = week, y = week)) +
+ggplot(wr1, aes(x = week, y = week)) +
   ggimage::geom_image(aes(image = headshot_url))
 
 
@@ -389,7 +411,7 @@ ranked <- season %>%
          max = max(fpts_pg),
          med = median(fpts_pg),
          min = min(fpts_pg)) %>%
-  filter(player_id == p1$player_id[1]) %>%
+  filter(player_id == wr1$player_id[1]) %>%
   select(fpts_pg, min, max, med) %>%
   round(2)
 

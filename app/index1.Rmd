@@ -68,6 +68,10 @@ selectInput("positionDropdown",
             label = "Position", 
             choices = c("All", "QB", "RB", "WR", "TE"))
 
+selectInput("variableDropdown",
+            label = "Variable", 
+            choices = c(NULL, "Air yards", "Targets/Receptions"))
+
 uiOutput("playerSelector")
 
 # Input: Specification of range within an interval ----
@@ -85,6 +89,143 @@ verbatimTextOutput("weekRangeText")
 ```
 
 ```{r context = "server"}
+# testData <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else if("Air yards" %in% input$variableDropdown) {
+#                 df <- season()
+#                 df1 <- player1()
+#                 # pivot longer for billboarder plot
+#                 air_yards <- df1 %>%
+#                     pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
+#           
+#                 billboarder::billboarder() %>%
+#                     bb_barchart(data = air_yards,
+#                         mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
+#   }
+# })
+  # } else if("Targets/Receptions" %in% input$variableDropdown) {
+  #     df1 <- season()
+  #     df2 <- player1()
+  # 
+  #     rank_targ <- df1 %>%
+  #         filter(position == df2$position[1]) %>%
+  #         filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+  #         group_by(player_id) %>%
+  #         add_count() %>%
+  #         mutate(tot_fpts = sum(fpts_hppr),
+  #                tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+  #                tot_recept = sum(receptions),
+  #                tot_targ = sum(targets),
+  #                fpts_pg = tot_fpts/n,
+  #                targ_pg = tot_targ/n,
+  #                recept_pg = tot_recept/n) %>%
+  #         slice(n = 1) %>%
+  #         arrange(-recept_pg) %>%
+  #         ungroup() %>%
+  #         mutate(rank = 1:n(),
+  #                max = max(recept_pg),
+  #                med = median(recept_pg),
+  #                min = min(recept_pg)) %>%
+  #         slice(n = 1:24)
+  # 
+  #     # pivot longer for billboarder plot
+  #     rank_targ <- rank_targ %>%
+  #         pivot_longer(50:51, names_to = "rcpt_str", values_to = "rcpt_val")
+  #     # round values to 2 decimals
+  #     rank_targ$rcpt_val <- round(rank_targ$rcpt_val, 2)
+  # 
+  #     billboarder() %>%
+  #         bb_barchart(data = rank_targ,
+  #             mapping = bbaes(x = full_name, y = rcpt_val, group = rcpt_str))
+  # 
+  # }
+
+# out$testGraph <- renderBillboarder({
+#   testData()
+# })
+# if (is.null(input$playerSearch) & is.null(input$variableDropdown)) {
+#     NULL
+#   } 
+# if (!is.null(input$playerSearch) & is.null(input$variableDropdown)) {
+#       playerData <- eventReactive(input$submitButton, {
+#              df <- season()
+#             # df <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+#             df1 <- player1()
+#             make_player_plot(df1)
+#         })
+#   } 
+# if (!is.null(input$playerSearch) & input$variableDropdown == "Air yards") {
+#        playerData <- eventReactive(input$submitButton, {
+#               df <- season()
+#               # df <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+#               df1 <- player1()
+#               make_player_plot(df1)
+#         })
+#        airyardsRankData <- eventReactive(input$submitButton, {
+#               df1 <- season()
+#               df2 <- player1()
+#               
+#               rank_airyards <- df1 %>%
+#                 filter(position == df2$position[1]) %>%
+#                 filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+#                 group_by(player_id) %>%
+#                 add_count() %>%
+#                 mutate(tot_fpts = sum(fpts_hppr),
+#                        tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+#                        tot_recept = sum(receptions),
+#                        tot_targ = sum(targets),
+#                        tot_carries = sum(carries),
+#                        tot_touch = tot_recept+ tot_carries,
+#                        fpts_pg = tot_fpts/n,
+#                        targ_pg = tot_targ/n,
+#                        recept_pg = tot_recept/n,
+#                        carries_pg = tot_carries/n,
+#                        airyards_pg = sum(receiving_air_yards)/n,
+#                        fpts_pt = fpts_pg/(recept_pg + carries_pg),
+#                        yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+#                        passyards_pg = sum(passing_yards)/n,
+#                        td_int_ratio = sum(passing_tds)/sum(interceptions)) %>%
+#                 slice(n = 1) %>%
+#                 filter(tot_touch >= 100 | tot_recept >=60) %>%
+#                 arrange(-airyards_pg) %>%
+#                 ungroup() %>%
+#                 slice(n = 1:36)
+#         
+#                 billboarder() %>%
+#                   bb_barchart(data = rank_airyards,
+#                               mapping = bbaes(x = full_name, y = airyards_pg)) %>%
+#                   bb_title(text = "AIR YARDS PER GAME") %>%
+#                   bb_axis(y = list(label = list(text = "YARDS", position = "middle")))
+#     })
+#        airyardsData <- eventReactive(input$submitButton, {
+#                 df <- season()
+#                 df1 <- player1()
+#                 # pivot longer for billboarder plot
+#                 air_yards <- df1 %>%
+#                     pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
+#           
+#                 billboarder::billboarder() %>%
+#                     bb_barchart(data = air_yards,
+#                         mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
+#   })
+#   }
+
+
+
+
+
+
+output$playerGraph <- renderPlotly({
+  playerData()
+})
+
+output$airyardsRankGraph <- renderBillboarder({
+        airyardsRankData()
+      })
+output$airyardsGraph <- renderBillboarder({
+  airyardsData()
+})
 # TESTING INPUTS + ACTION BUTTON REACTIVITY
 seasonText <- eventReactive(input$submitButton, {
     paste0("Season: ", input$seasonDropdown)
@@ -178,39 +319,7 @@ output$positionRankBox <- renderValueBox({
 ```
 
 
-```{r context="server"}
-# FPTS/Game number during period
-# fppgValue <- eventReactive(input$submitButton, {
-#   if(is.null(input$playerSearch)) {
-#       NULL
-#   } else {
-#       df1 <- season()
-#       df2 <- player1()
-#   # find position rank --- total fpts during period
-#       ranks <- df1 %>%
-#         filter(position == df2$position[1]) %>%
-#         filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
-#         group_by(player_id) %>%
-#         add_count() %>%
-#         mutate(total_fpts = sum(fpts_hppr),
-#                total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
-#                fpts_pg = total_fpts/n) %>%
-#         slice(n = 1) %>%
-#         arrange(-fpts_pg) %>%
-#         ungroup() %>%
-#         mutate(rank = 1:n()) %>%
-#         filter(player_id == df2$player_id[1]) %>%
-#         select(fpts_pg) %>% 
-#         round(2)
-#   }
-# })
-# 
-# # Output position Rank value box to UI
-# output$fppgBox <- renderValueBox({
-#   valueBox(fppgValue(), 
-#            caption = "FPTS/game")
-# })
-```
+
 
 ```{r context = "server"}
 fppgGaugeValue <- eventReactive(input$submitButton, {
@@ -456,248 +565,184 @@ Row {.tabset}
 plotlyOutput("playerGraph")
 ```
 
-### Yards per carry
-```{r}
-billboarderOutput('ypcGraph')
-```
-
-### Air Yards
-```{r}
-billboarderOutput('airyardsGraph')
-```
-
-### Targets/receptions 
-```{r}
-billboarderOutput('targetsGraph')
-```
-
 ```{r context="server"}
-playerData <- eventReactive(input$submitButton, {
-  if(is.null(input$playerSearch)) {
-    NULL
-  } else {
-    df <- season()
-    # df <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
-    df1 <- player1()
-    make_player_plot(df1)
-  }
-})
-
-output$playerGraph <- renderPlotly({
-  playerData()
-})
-
-targetData <- eventReactive(input$submitButton, {
-  if(is.null(input$playerSearch)) {
-    NULL
-  } else {
-      df <- season()
-      # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
-      df1 <- player1()
-# pivot longer for billboarder plot
-      df1 <- df1 %>%
-        pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
-
-      billboarder() %>%
-        bb_barchart(data = df1,
-                    mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
-  }
-})
-
-output$targetsGraph <- renderBillboarder({
-  targetData()
-})
-
-airyardsData <- eventReactive(input$submitButton, {
-  if(is.null(input$playerSearch)) {
-    NULL
-  } else {
-      df <- season()
-      # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
-      df1 <- player1()
-# pivot longer for billboarder plot
-      air_yards <- df1 %>%
-          pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
-
-      billboarder::billboarder() %>%
-          bb_barchart(data = air_yards,
-              mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
-  }
-})
-
-output$airyardsGraph <- renderBillboarder({
-  airyardsData()
-})
-
-ypcData <- eventReactive(input$submitButton, {
-  if(is.null(input$playerSearch)) {
-    NULL
-  } else {
-      df <- season()
-      # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
-      df1 <- df1 %>%
-        mutate(fpts_per_touch = fpts_hppr/(receptions + carries)) %>%
-        pivot_longer(c(62, 63), names_to = "ypc_str", values_to = "ypc_val")
-
-      billboarder::billboarder() %>%
-        bb_linechart(data = df1,
-              mapping = bbaes(x = week, y = ypc_val, group = ypc_str))
-  }
-})
-
-output$ypcGraph <- renderBillboarder({
-  ypcData()
-})
+# playerData <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else {
+#     df <- season()
+#     # df <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+#     df1 <- player1()
+#     make_player_plot(df1)
+#   }
+# })
+# 
+# output$playerGraph <- renderPlotly({
+#   playerData()
+# })
+# 
+# targetData <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else {
+#       df <- season()
+#       # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+#       df1 <- player1()
+# # pivot longer for billboarder plot
+#       df1 <- df1 %>%
+#         pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
+# 
+#       billboarder() %>%
+#         bb_barchart(data = df1,
+#                     mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
+#   }
+# })
+# 
+# output$targetsGraph <- renderBillboarder({
+#   targetData()
+# })
+# 
+# airyardsData <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else {
+#       df <- season()
+#       # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+#       df1 <- player1()
+# # pivot longer for billboarder plot
+#       air_yards <- df1 %>%
+#           pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
+# 
+#       billboarder::billboarder() %>%
+#           bb_barchart(data = air_yards,
+#               mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
+#   }
+# })
+# 
+# output$airyardsGraph <- renderBillboarder({
+#   airyardsData()
+# })
+# 
+# ypcData <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else {
+#       df <- season()
+#       df1 <- player1()
+#       # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+#       df1 <- df1 %>%
+#         mutate(fpts_per_touch = fpts_hppr/(receptions + carries)) %>%
+#         pivot_longer(c(62, 63), names_to = "ypc_str", values_to = "ypc_val")
+# 
+#       billboarder::billboarder() %>%
+#         bb_linechart(data = df1,
+#               mapping = bbaes(x = week, y = ypc_val, group = ypc_str))
+#   }
+# })
+# 
+# output$ypcGraph <- renderBillboarder({
+#   ypcData()
+# })
 ```
 
 
 Row {.tabset}
 ------------------------------------
-### FPTS position Ranking
+### Air Yards
 ```{r}
-billboarderOutput("positionRankGraph")
+billboarderOutput('testGraph')
 ```
 
-### YPC Ranking
-```{r}
-billboarderOutput('airyardsRankGraph')
-```
-
-### Airyards Ranking
-```{r}
-billboarderOutput('airyardsRankGraph')
-```
-
-### Targets/receptions Ranking
-```{r}
-billboarderOutput('targetsRankGraph')
-```
 
 ```{r context = "server"}
-posRankData <- eventReactive(input$submitButton, {
-  if(is.null(input$playerSearch)) {
-    NULL
-  } else {
-      df1 <- season()
-      df2 <- player1()
-  
-      rank_fpts <- df1 %>%
-          filter(position == df2$position[1]) %>%
-          filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
-          group_by(player_id) %>%
-          add_count() %>%
-          mutate(tot_fpts = sum(fpts_hppr),
-                 tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
-                 tot_recept = sum(receptions),
-                 tot_targ = sum(targets),
-                 fpts_pg = tot_fpts/n,
-                 targ_pg = tot_targ/n,
-                 recept_pg = tot_recept/n) %>%
-          slice(n = 1) %>%
-          arrange(-fpts_pg) %>%
-          ungroup() %>%
-          filter(n >= 5) %>%
-          slice(n = 1:24)
-      rank_fpts$fpts_pg <- round(rank_fpts$fpts_pg, 2)
-    
-      billboarder() %>%
-          bb_barchart(data = rank_fpts,
-              mapping = bbaes(x = full_name, y = fpts_pg))
-    }
-})
-
-output$positionRankGraph <- renderBillboarder({
-        posRankData()
-      })
-
-targetRankData <- eventReactive(input$submitButton, {
-  if(is.null(input$playerSearch)) {
-    NULL
-  } else {
-      df1 <- season()
-      df2 <- player1()
-      
-      rank_targ <- df1 %>%
-          filter(position == df2$position[1]) %>%
-          filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
-          group_by(player_id) %>%
-          add_count() %>%
-          mutate(tot_fpts = sum(fpts_hppr),
-                 tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
-                 tot_recept = sum(receptions),
-                 tot_targ = sum(targets),
-                 fpts_pg = tot_fpts/n,
-                 targ_pg = tot_targ/n,
-                 recept_pg = tot_recept/n) %>%
-          slice(n = 1) %>%
-          arrange(-recept_pg) %>%
-          ungroup() %>%
-          mutate(rank = 1:n(),
-                 max = max(recept_pg),
-                 med = median(recept_pg),
-                 min = min(recept_pg)) %>%
-          slice(n = 1:24)
-    
-      # pivot longer for billboarder plot
-      rank_targ <- rank_targ %>%
-          pivot_longer(50:51, names_to = "rcpt_str", values_to = "rcpt_val")
-      # round values to 2 decimals
-      rank_targ$rcpt_val <- round(rank_targ$rcpt_val, 2)
-
-      billboarder() %>%
-          bb_barchart(data = rank_targ,
-              mapping = bbaes(x = full_name, y = rcpt_val, group = rcpt_str))
-    }
-})
-
-output$targetsRankGraph <- renderBillboarder({
-        targetRankData()
-      })
-
-airyardsRankData <- eventReactive(input$submitButton, {
-  if(is.null(input$playerSearch)) {
-    NULL
-  } else {
-      df1 <- season()
-      df2 <- player1()
-      
-      rank_airyards <- df1 %>%
-        filter(position == df2$position[1]) %>%
-        filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
-        group_by(player_id) %>%
-        add_count() %>%
-        mutate(tot_fpts = sum(fpts_hppr),
-               tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
-               tot_recept = sum(receptions),
-               tot_targ = sum(targets),
-               tot_carries = sum(carries),
-               tot_touch = tot_recept+ tot_carries,
-               fpts_pg = tot_fpts/n,
-               targ_pg = tot_targ/n,
-               recept_pg = tot_recept/n,
-               carries_pg = tot_carries/n,
-               airyards_pg = sum(receiving_air_yards)/n,
-               fpts_pt = fpts_pg/(recept_pg + carries_pg),
-               yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
-               passyards_pg = sum(passing_yards)/n,
-               td_int_ratio = sum(passing_tds)/sum(interceptions)) %>%
-        slice(n = 1) %>%
-        filter(tot_touch >= 100 | tot_recept >=60) %>%
-        arrange(-airyards_pg) %>%
-        ungroup() %>%
-        slice(n = 1:36)
-
-        billboarder() %>%
-          bb_barchart(data = rank_airyards,
-                      mapping = bbaes(x = full_name, y = airyards_pg)) %>%
-          bb_title(text = "AIR YARDS PER GAME") %>%
-          bb_axis(y = list(label = list(text = "YARDS", position = "middle")))
-    }
-})
-
-output$airyardsRankGraph <- renderBillboarder({
-        airyardsRankData()
-      })
+# targetRankData <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else {
+#       df1 <- season()
+#       df2 <- player1()
+#       
+#       rank_targ <- df1 %>%
+#           filter(position == df2$position[1]) %>%
+#           filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+#           group_by(player_id) %>%
+#           add_count() %>%
+#           mutate(tot_fpts = sum(fpts_hppr),
+#                  tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+#                  tot_recept = sum(receptions),
+#                  tot_targ = sum(targets),
+#                  fpts_pg = tot_fpts/n,
+#                  targ_pg = tot_targ/n,
+#                  recept_pg = tot_recept/n) %>%
+#           slice(n = 1) %>%
+#           arrange(-recept_pg) %>%
+#           ungroup() %>%
+#           mutate(rank = 1:n(),
+#                  max = max(recept_pg),
+#                  med = median(recept_pg),
+#                  min = min(recept_pg)) %>%
+#           slice(n = 1:24)
+#     
+#       # pivot longer for billboarder plot
+#       rank_targ <- rank_targ %>%
+#           pivot_longer(50:51, names_to = "rcpt_str", values_to = "rcpt_val")
+#       # round values to 2 decimals
+#       rank_targ$rcpt_val <- round(rank_targ$rcpt_val, 2)
+# 
+#       billboarder() %>%
+#           bb_barchart(data = rank_targ,
+#               mapping = bbaes(x = full_name, y = rcpt_val, group = rcpt_str))
+#     }
+# })
+# 
+# output$targetsRankGraph <- renderBillboarder({
+#         targetRankData()
+#       })
+# 
+# airyardsRankData <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else {
+#       df1 <- season()
+#       df2 <- player1()
+#       
+#       rank_airyards <- df1 %>%
+#         filter(position == df2$position[1]) %>%
+#         filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+#         group_by(player_id) %>%
+#         add_count() %>%
+#         mutate(tot_fpts = sum(fpts_hppr),
+#                tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+#                tot_recept = sum(receptions),
+#                tot_targ = sum(targets),
+#                tot_carries = sum(carries),
+#                tot_touch = tot_recept+ tot_carries,
+#                fpts_pg = tot_fpts/n,
+#                targ_pg = tot_targ/n,
+#                recept_pg = tot_recept/n,
+#                carries_pg = tot_carries/n,
+#                airyards_pg = sum(receiving_air_yards)/n,
+#                fpts_pt = fpts_pg/(recept_pg + carries_pg),
+#                yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+#                passyards_pg = sum(passing_yards)/n,
+#                td_int_ratio = sum(passing_tds)/sum(interceptions)) %>%
+#         slice(n = 1) %>%
+#         filter(tot_touch >= 100 | tot_recept >=60) %>%
+#         arrange(-airyards_pg) %>%
+#         ungroup() %>%
+#         slice(n = 1:36)
+# 
+#         billboarder() %>%
+#           bb_barchart(data = rank_airyards,
+#                       mapping = bbaes(x = full_name, y = airyards_pg)) %>%
+#           bb_title(text = "AIR YARDS PER GAME") %>%
+#           bb_axis(y = list(label = list(text = "YARDS", position = "middle")))
+#     }
+# })
+# 
+# output$airyardsRankGraph <- renderBillboarder({
+#         airyardsRankData()
+#       })
 ```
 
 ### Data table
