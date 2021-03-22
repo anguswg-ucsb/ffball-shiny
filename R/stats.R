@@ -3,7 +3,6 @@ library(tidyverse)
 library(nflfastR)
 library(DT)
 library(plotly)
-library(highcharter)
 library(billboarder)
 
 
@@ -96,14 +95,42 @@ air_yards <- p1 %>%
 
 billboarder::billboarder() %>%
   bb_barchart(data = air_yards,
-              mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str)) %>%
-  bb_axis()
-billboarder::ax
+              mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
+
 #################### LEAGUE RECEPTIONS + TARGETS RANKS #####################
 
 
+########### AIR YARDS LEAGUE RANK #############
+rank_airyards <- season %>%
+  filter(position == p1$position[1]) %>%
+  filter(week >= 1, week <= 16) %>%
+  group_by(player_id) %>%
+  add_count() %>%
+  mutate(tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         fpts_pg = tot_fpts/n,
+         targ_pg = tot_targ/n,
+         recept_pg = tot_recept/n,
+         airyards_pg = sum(receiving_air_yards)/n) %>%
+  slice(n = 1) %>%
+  filter(n >= 5) %>%
+  arrange(-airyards_pg) %>%
+  ungroup() %>%
+  mutate(rank = 1:n(),
+         max = max(airyards_pg),
+         med = median(airyards_pg),
+         min = min(airyards_pg)) %>%
+  slice(n = 1:36)
 
+billboarder::billboarder() %>%
+  bb_barchart(data = rank_airyards,
+              mapping = bbaes(x = full_name, y = airyards_pg))
 
+### bubble chart
+ggplotly(ggplot(rank_airyards, aes(x = fpts_pg, y = airyards_pg)) +
+           geom_point(aes(size = tot_recept, col = full_name)))
 
 
 
@@ -144,8 +171,152 @@ plot_ly(player, x = ~week, y = ~rushing_yards,
   # add_segments(x = min(~week), xend = max(~week), y = ~rush_per_game, yend = ~rush_per_game) %>%
   layout(barmode = "stack")
 
+################### PLAYER YPC & YARDS AFTER CONTACT ####################
+rb1 <- get_player_data(season, "Dalvin Cook", 1, 16)
+ypc <- rb1 %>%
+  mutate(ypc = rushing_yards/carries)
+billboarder::billboarder() %>%
+  bb_barchart(data = ypc,
+              mapping = bbaes(x = week, y = ypc)) %>%
+  bb_linechart(ypc$carries)
+               # , mapping = bbaes(x = week, y = carries))
+
+
+billboarder::billboarder() %>%
+  bb_barchart(data = air_yards,
+              mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
+
+#################### LEAGUE YPC & YARDS AFTER CONTACT #####################
+hist(rank_ypc$std)
+rank_ypc <- season %>%
+  filter(position == rb1$position[1]) %>%
+  filter(week >= 1, week <= 16) %>%
+  group_by(player_id) %>%
+  add_count() %>%
+  mutate(tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         fpts_pg = tot_fpts/n,
+         targ_pg = tot_targ/n,
+         recept_pg = tot_recept/n,
+         ypc = rushing_yards/carries,
+         tot_carries = sum(carries)) %>%
+ungroup() %>%
+         mutate(total_carries = sum(carries), std = abs(tot_carries - mean(tot_carries)) / sd(tot_carries)) %>%
+  filter(std >= 0.6, tot_carries >= 150) %>%
+group_by(player_id) %>%
+  slice(n = 1) %>%
+  arrange(-ypc) %>%
+  ungroup()
+
+rank_ypc2 <- season %>%
+  filter(position == rb1$position[1]) %>%
+  filter(week >= 1, week <= 16) %>%
+  group_by(player_id) %>%
+  add_count() %>%
+  mutate(tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         fpts_pg = tot_fpts/n,
+         targ_pg = tot_targ/n,
+         recept_pg = tot_recept/n,
+         ypc = rushing_yards/carries,
+         tot_carries = sum(carries)) %>%
+  filter(tot_carries >= 150) %>%
+  slice(n = 1) %>%
+  arrange(-ypc) %>%
+  ungroup()
+  # filter(n >= 5) %>%
+  # slice(n = 1:30)
 # PLAYER PROFILE INFO FUNCTION
 
+########### YPC LEAGUE RANK #############
+billboarder::billboarder() %>%
+  bb_barchart(data = rank_ypc2,
+              mapping = bbaes(x = full_name, y = ypc))
+
+qb_rank <- season %>%
+  filter(position == "QB") %>%
+  filter(week >= 1, week <= 16) %>%
+  group_by(player_id) %>%
+  add_count() %>%
+  mutate(total_fpts = sum(fpts_hppr),
+         total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+         fpts_pg = total_fpts/n) %>%
+  slice(n = 1) %>%
+  arrange(-fpts_pg) %>%
+  ungroup() %>%
+  filter(n >= 5)
+
+jenks_df <- BAMMtools::getJenksBreaks(qb_rank$fpts_pg, 4) %>%
+  data.frame() %>%
+  mutate(brk = letters[1:4]) %>%
+  rename(jenk = ".") %>%
+  pivot_wider(jenk, names_from = "brk", values_from = "jenk")
+
+qb_rank <- bind_cols(qb_rank, jenks_df)
+
+qb_rank <- qb_rank %>%
+  filter(full_name == "Tom Brady") %>%
+  select(fpts_pg, a, b, c, d) %>%
+  round(2)
+
+############## YARDS PER GAME GAUGE ##############
+rank_yards <- season %>%
+  filter(position == rb1$position[1]) %>%
+  filter(week >= 1, week <= 16) %>%
+  group_by(player_id) %>%
+  add_count() %>%
+  mutate(tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         fpts_pg = tot_fpts/n,
+         targ_pg = tot_targ/n,
+         recept_pg = tot_recept/n,
+         yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n) %>%
+  slice(n = 1) %>%
+  arrange(-yards_pg) %>%
+  ungroup() %>%
+  filter(n >= 5)
+
+jenks_df <- BAMMtools::getJenksBreaks(rank_yards$yards_pg, 4) %>%
+  data.frame() %>%
+  mutate(brk = letters[1:4]) %>%
+  rename(jenk = ".") %>%
+  pivot_wider(jenk, names_from = "brk", values_from = "jenk")
+
+rank_yards <- bind_cols(rank_yards, jenks_df)
+
+rank_yards <- rank_yards %>%
+  filter(full_name == "Myles Gaskin") %>%
+  select(yards_pg, a, b, c, d) %>%
+  round(2)
+
+filter(player_id == rb1$player_id[1]) %>%
+  select(fpts_pg) %>%
+  round(2)
+
+df2 <- bind_cols(rank_yards, jenks)
+
+library(BAMMtools)
+rm(jenks)
+rm(jenk_df)
+
+jenks_df <- BAMMtools::getJenksBreaks(rank_yards$yards_pg, 6) %>%
+  data.frame() %>%
+  mutate(brk = LETTERS[1:4]) %>%
+  rename(jenk = ".") %>%
+  pivot_wider(jenk, names_from = "brk", values_from = "jenk")
+
+jenk_df <- data.frame(jenks) %>%
+  mutate(brk = letters[1:4]) %>%
+  pivot_wider(jenks, names_from = "brk", values_from = "jenks")
+
+
+jenks[1]
 
 
 ggplot(p1, aes(x = week, y = week)) +
@@ -165,7 +336,8 @@ rb1 <- season %>%
          tot_recept = sum(receptions),
          tot_targ = sum(targets),
          recept_pg = tot_recept/n,
-         targ_pg = tot_targ/n)
+         targ_pg = tot_targ/n,
+         yards_pg = (sum(rushing_yards) + sum(receiving_yards))/n)
 
 qb1 <- player_data(season, "Kyler Murray", 1, 16)
 rb1 <- player_data(season, "Josh Jacobs", 1, 16)
@@ -182,7 +354,8 @@ rank_fpts <- season %>%
          tot_targ = sum(targets),
          fpts_pg = tot_fpts/n,
          targ_pg = tot_targ/n,
-         recept_pg = tot_recept/n) %>%
+         recept_pg = tot_recept/n,
+         yards_pg = (sum(rushing_yards) + sum(receiving_yards))/n)) %>%
   slice(n = 1) %>%
   arrange(-fpts_pg) %>%
   ungroup() %>%

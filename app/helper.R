@@ -55,7 +55,8 @@ get_player_data <- function (df_season, name, start, end) {
            tot_recept = sum(receptions),
            tot_targ = sum(targets),
            targ_pg = tot_targ/n,
-           recept_pg = tot_recept/n)
+           recept_pg = tot_recept/n,
+           avg_dot = receiving_air_yards/targets)
 }
 
 # plot player_data() data
