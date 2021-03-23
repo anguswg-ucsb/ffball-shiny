@@ -43,8 +43,12 @@ player_data <- function(df_season, name, start, end) {
 
 get_player_data <- function (df_season, name, start, end) {
   p1 <- df_season %>%
+    # filter(week >= start, week <= end) %>%
+    group_by(recent_team, week) %>%
+    mutate(team_targets = sum(targets), target_share = targets/team_targets) %>%
+    ungroup() %>%
     filter(full_name == as.character(name)) %>%
-    select(1, 43, 42, 2:39) %>%
+    select(1, 43, 42, 2:39, 44, 45) %>%
     filter(week >= start, week <= end) %>%
     add_count() %>%
     mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
@@ -74,35 +78,41 @@ get_player_data <- function (df_season, name, start, end) {
 
 # plot player_data() data
 make_player_plot <- function(df) {
-
   # Fantasy points + RUSH YARDS + PASS + REC  in game in weeks
-  plot_ly(df, x = ~week, y = ~rushing_yards,
-          type = 'bar',
-          textposition = 'auto',
-          name = "RUSHING",
-          marker = list(color = 'rgba(219, 64, 82, 0.7)',
-                        line = list(color = 'rgba(219, 64, 82, 1.0)',
-                                    width = 2))) %>%
-    add_trace(df, x = ~week, y = ~receiving_yards,
-              type = 'bar',
-              name = "RECIEVING",
-              marker = list(color = 'rgba(10, 150, 24, 0.7)',
-                            line = list(color = 'rgba(55, 128, 191, 0.7)',
-                                        width = 2)))%>%
-    add_trace(df, x = ~week, y = ~passing_yards,
-              type = 'bar',
-              name = "PASSING",
-              marker = list(color = 'rgba(55, 128, 191, 0.7)',
-                            line = list(color = 'rgba(55, 128, 191, 0.7)',
-                                        width = 2))) %>%
-    add_trace(df, x = ~week, y = ~fpts_hppr,
-              type = "scatter",
-              mode = "lines",
-              name = "FPTS",
-              line = list(color = 'rgba(0, 0, 0, 1)',
-                          width = 4)) %>%
-    # add_segments(x = min(~week), xend = max(~week), y = ~rush_per_game, yend = ~rush_per_game) %>%
-    layout(barmode = "stack")
+  highchart() %>%
+    hc_plotOptions(column = list(stacking = "normal")) %>%
+    hc_add_series(df, name = "Rushing yards", type = "column", hcaes(x = week, y = rushing_yards, stack = "rushing_yards")) %>%
+    hc_add_series(df, name = "Receiving yards", type = "column", hcaes(x = week, y = receiving_yards, stack = "rushing_yards")) %>%
+    hc_add_series(df, name = "Passing yards",type = "column", hcaes(x = week, y = passing_yards, stack = "rushing_yards")) %>%
+    hc_yAxis(min = 0) %>%
+    hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+  # plot_ly(df, x = ~week, y = ~rushing_yards,
+  #         type = 'bar',
+  #         textposition = 'auto',
+  #         name = "RUSHING",
+  #         marker = list(color = 'rgba(219, 64, 82, 0.7)',
+  #                       line = list(color = 'rgba(219, 64, 82, 1.0)',
+  #                                   width = 2))) %>%
+  #   add_trace(df, x = ~week, y = ~receiving_yards,
+  #             type = 'bar',
+  #             name = "RECIEVING",
+  #             marker = list(color = 'rgba(10, 150, 24, 0.7)',
+  #                           line = list(color = 'rgba(55, 128, 191, 0.7)',
+  #                                       width = 2)))%>%
+  #   add_trace(df, x = ~week, y = ~passing_yards,
+  #             type = 'bar',
+  #             name = "PASSING",
+  #             marker = list(color = 'rgba(55, 128, 191, 0.7)',
+  #                           line = list(color = 'rgba(55, 128, 191, 0.7)',
+  #                                       width = 2))) %>%
+  #   add_trace(df, x = ~week, y = ~fpts_hppr,
+  #             type = "scatter",
+  #             mode = "lines",
+  #             name = "FPTS",
+  #             line = list(color = 'rgba(0, 0, 0, 1)',
+  #                         width = 4)) %>%
+  #   # add_segments(x = min(~week), xend = max(~week), y = ~rush_per_game, yend = ~rush_per_game) %>%
+  #   layout(barmode = "stack")
 }
 
 # Deals with grouping of NULL data when start has no data

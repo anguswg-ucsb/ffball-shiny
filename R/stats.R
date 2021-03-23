@@ -52,27 +52,100 @@ billboarder::billboarder() %>%
 
 ################# LEAGUE RECEPTIONS + TARGETS RANKS #####################
 
-p2 <- get_player_data(season, "Tyler Lockett", 1, 16)
+rb1 <- get_player_data(season, "Dalvin Cook", 1, 16)
 
-rank <- season %>%
+wr1 <- get_player_data(season, "Calvin Ridley", 1, 16)
+
+qb1 <- get_player_data(season, "Josh Allen", 1, 16)
+
+highchart() %>%
+  hc_plotOptions(column = list(stacking = "normal")) %>%
+  hc_add_series(qb1, type = "column", hcaes(x = week, y = rushing_yards, stack = "rushing_yards")) %>%
+  hc_add_series(qb1, type = "column", hcaes(x = week, y = avg_dot, stack = "rushing_yards")) %>%
+  hc_add_series(qb1, type = "column", hcaes(x = week, y = passing_yards, stack = "rushing_yards")) %>%
+  hc_yAxis(min = 0)
+  # hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+
+
+highchart() %>%
+  hc_plotOptions(column = list(stacking = "normal")) %>%
+  hc_add_series(wr1, type = "column", hcaes(x = week, y = receiving_air_yards, stack = "receiving_air_yards")) %>%
+  hc_add_series(wr1, type = "column", hcaes(x = week, y = target_share, stack = "receiving_air_yards")) %>%
+  hc_add_series(wr1, type = "column", hcaes(x = week, y = passing_yards, stack = "rushing_yards")) %>%
+  hc_yAxis(min = 0)
+
+highchart() %>%
+  hc_yAxis_multiples(list(title = list(text = "AIR YARDS"),
+                          # min=0,
+                          # max = max(p3$receiving_air_yards),
+                          showFirstLabel = TRUE,
+                          showLastLabel = TRUE,
+                          opposite = FALSE),
+                     list(title = list(text = "TARGET %"),
+                          min=0,
+                          max = .75,
+                          # max = max(wr1$target_share),
+                          showLastLabel=FALSE,
+                          opposite = TRUE)) %>%
+  hc_add_series(wr1, type = "column",
+                hcaes(x = week, y = receiving_air_yards), yAxis = 0 ) %>%
+  hc_add_series(wr1, type = "column",
+                hcaes(x = week, y = receiving_yards), yAxis = 0) %>%
+  hc_add_series(wr1, type = "line",
+                hcaes(x = week, y = target_share), yAxis = 1) %>%
+  hc_colors(c("darkcyan", "lightblue", "darkred"))
+
+######## TARGET SHARE ##########
+
+
+
+# target <- season %>%
+#   group_by(recent_team, week) %>%
+#   mutate(team_targets = sum(targets), target_share = targets/team_targets) %>%
+#   ungroup() %>%
+#   add_count() %>%
+#   mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
+#          recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
+#          pass_yards_pg = (sum(passing_yards)/nrow(.)),
+#          tot_fpts = sum(fpts_hppr),
+#          tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+#          tot_recept = sum(receptions),
+#          tot_targ = sum(targets),
+#          tot_carries = sum(carries),
+#          tot_touch = tot_recept+ tot_carries,
+#          fpts_pg = (sum(fpts_hppr)/n),
+#          tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+#          tot_recept = sum(receptions),
+#          tot_targ = sum(targets),
+#          targ_pg = tot_targ/n,
+#          recept_pg = tot_recept/n,
+#          avg_dot = receiving_air_yards/targets,
+#          carries_pg = tot_carries/n,
+#          airyards_pg = sum(receiving_air_yards)/n,
+#          fpts_pt = fpts_pg/(recept_pg + carries_pg),
+#          yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+#          passyards_pg = sum(passing_yards)/n,
+#          td_int_ratio = sum(passing_tds)/sum(interceptions),
+#          ypc = rushing_yards/carries,
+#          target_share = targets/team_targets)
+
+
+rank_test <- season %>%
   filter(position == p2$position[1]) %>%
-  filter(week >= 1, week <= 16) %>%
   group_by(player_id) %>%
-  add_count() %>%
+  add_count(name = "count1") %>%
+  filter(week >= 1, week <= 16) %>%
+  add_count(name = "count2") %>%
   mutate(tot_fpts = sum(fpts_hppr),
          tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
          tot_recept = sum(receptions),
          tot_targ = sum(targets),
-         fpts_pg = tot_fpts/n,
-         targ_pg = tot_targ/n,
-         recept_pg = tot_recept/n) %>%
+         fpts_pg = tot_fpts/count2,
+         targ_pg = tot_targ/count2,
+         recept_pg = tot_recept/count2) %>%
   slice(n = 1) %>%
   arrange(-recept_pg) %>%
   ungroup() %>%
-  mutate(rank = 1:n(),
-         max = max(recept_pg),
-         med = median(recept_pg),
-         min = min(recept_pg)) %>%
   slice(n = 1:36)
 
 # pivot longer for billboarder plot
@@ -88,6 +161,7 @@ billboarder::billboarder() %>%
 highchart() %>%
   hc_add_series(rank, type = "column", hcaes(x = full_name, y = recept_pg)) %>%
   hc_add_series(rank, type = "column", hcaes(x = full_name, y = targ_pg)) %>%
+  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%') %>%
   hc_xAxis(categories = rank$full_name)
 
 ################### PLAYER AIR YARDS + RECIEVE YARDS ####################
