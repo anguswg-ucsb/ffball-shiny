@@ -10,8 +10,8 @@
 # LOAD IN SEASON DATA
 season <- load_data(2020)
 # saveRDS(season, file = "data/nfl-season-2020")
-
-tmp1 <- player_data(season, "Calvin Ridley", 1, 16)
+df1 <- season
+df2 <- player_data(season, "Calvin Ridley", 1, 16)
 tmp2 <- get_player_data(season, "Calvin Ridley", 1, 16)
 
 ####### player_data() edits #######
@@ -51,6 +51,8 @@ billboarder::billboarder() %>%
               mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
 
 ################# LEAGUE RECEPTIONS + TARGETS RANKS #####################
+
+p2 <- get_player_data(season, "Tyler Lockett", 1, 16)
 
 rank <- season %>%
   filter(position == p2$position[1]) %>%
@@ -200,33 +202,52 @@ billboarder::billboarder() %>%
 #################### LEAGUE YPC & YARDS AFTER CONTACT #####################
 
 rank_ypc <- season %>%
-  filter(position == "WR") %>%
+  filter(position == "RB") %>%
   filter(week >= 1, week <= 16) %>%
   group_by(player_id) %>%
   add_count() %>%
   mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
-          recieve_yards_pg = (sum(receiving_yards)/nrow(.)), pass_yards_pg = (sum(passing_yards)/nrow(.)), tot_fpts = sum(fpts_hppr),
-          tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
-          tot_recept = sum(receptions), tot_targ = sum(targets), tot_carries = sum(carries), tot_touch = tot_recept+ tot_carries, fpts_pg = (sum(fpts_hppr)/n), tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds), tot_recept = sum(receptions),
-          tot_targ = sum(targets), targ_pg = tot_targ/n,  recept_pg = tot_recept/n, avg_dot = receiving_air_yards/targets,carries_pg = tot_carries/n,airyards_pg = sum(receiving_air_yards)/n, fpts_pt = fpts_pg/(recept_pg + carries_pg),
-          yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
-          passyards_pg = sum(passing_yards)/n,  td_int_ratio = sum(passing_tds)/sum(interceptions), ypc = rushing_yards/carries) %>%
-  # mutate(tot_fpts = sum(fpts_hppr),
-  #        tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
-  #        tot_recept = sum(receptions),
-  #        tot_targ = sum(targets),
-  #        fpts_pg = tot_fpts/n,
-  #        targ_pg = tot_targ/n,
-  #        recept_pg = tot_recept/n,
-  #        ypc = rushing_yards/carries,
-  #        tot_carries = sum(carries)) %>%
-ungroup() %>%
-         mutate(total_carries = sum(carries), std = abs(tot_carries - mean(tot_carries)) / sd(tot_carries)) %>%
-  # filter(std >= 0.6, tot_carries >= 150) %>%
-group_by(player_id) %>%
+         recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
+         pass_yards_pg = (sum(passing_yards)/nrow(.)),
+         tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         tot_carries = sum(carries),
+         tot_touch = tot_recept+ tot_carries,
+         fpts_pg = (sum(fpts_hppr)/n),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         targ_pg = tot_targ/n,
+         recept_pg = tot_recept/n,
+         avg_dot = receiving_air_yards/targets,
+         carries_pg = tot_carries/n,
+         airyards_pg = sum(receiving_air_yards)/n,
+         fpts_pt = fpts_pg/(recept_pg + carries_pg),
+         yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+         passyards_pg = sum(passing_yards)/n,
+         td_int_ratio = sum(passing_tds)/sum(interceptions),
+         ypc = sum(rushing_yards)/tot_carries,
+         fpts_per_touch = tot_fpts/(tot_recept + tot_carries)) %>%
+  ungroup() %>%
+  filter(carries_pg >= 6.25) %>%
+  # mutate(total_carries = sum(carries), std = abs(tot_carries - mean(tot_carries)) / sd(tot_carries)) %>%
+  # # filter(std >= 0.6) %>%
+  group_by(player_id) %>%
   slice(n = 1) %>%
+  ungroup() %>%
+  mutate(avg_ypc = mean(ypc)) %>%
   arrange(-ypc) %>%
-  ungroup()
+  slice(n = 1:36)
+
+rank_ypc <- rename(rank_ypc, "Fantasy points per touch" = fpts_per_touch, "Yards per carry" = ypc)
+rank_ypc2 <- rank_ypc %>%
+  pivot_longer(64:65, names_to = "fpts_touch_str", values_to = "fpts_touch_val")
+
+billboarder::billboarder() %>%
+  bb_barchart(data = rank_ypc2,
+              mapping = bbaes(x = full_name, y = fpts_touch_val, group = fpts_touch_str))
 
 lmYPC <- lm(fpts_pg~airyards_pg, data = rank_ypc)
 
