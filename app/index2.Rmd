@@ -1,0 +1,302 @@
+---
+title: "Fantasy land"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    navbar:
+      - { icon: "fa-question-circle", href: "https://water.noaa.gov/about/nwm", align: right }
+    theme: flatly
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include = FALSE}
+library(shiny)
+library(flexdashboard)
+library(shinyWidgets)
+library(shinycustomloader)
+
+library(nflfastR)
+library(DT)
+library(plotly)
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(DT)
+library(plotly)
+library(highcharter)
+library(billboarder)
+
+source('helper.R')
+```
+
+```{r context="server"}
+ # season <<- reactive({
+     # season <- load_data(as.numeric(input$seasonDropdown))
+ # })
+# season <- reactiveValues()
+season <<- reactive({
+  dataset <- load_data(as.numeric(input$seasonDropdown))
+})
+
+player1 <- reactive({
+  df2 <- get_player_data(season(), input$playerSearch, input$weekRange[1], input$weekRange[2])
+})
+
+```
+
+Player stats {data-icon="fa-tint"}
+====================================
+
+Inputs {.sidebar}
+-------------------------------------
+
+### Filters
+```{r}
+# dqshiny::autocomplete_input("auto", "Search for a County:",
+#                                 value = "",
+#                                 max_options = 5,
+#                                 options = list(season()$full_name))
+
+selectInput("seasonDropdown",
+            label = "Season", 
+            selected = 2020,
+            choices = c("All", 2020:1999))
+
+selectInput("positionDropdown",
+            label = "Position", 
+            choices = c("All", "QB", "RB", "WR", "TE"))
+
+uiOutput("playerSelector")
+
+selectInput("variableDropdown",
+            label = "Variable", 
+            choices = c(NULL, "Air yards", "Targets/Receptions", "Yards per carry"))
+
+# Input: Specification of range within an interval ----
+sliderInput("weekRange", "Week",
+                  min = 1, max = 16,
+                  value = c(1, 16))
+
+verbatimTextOutput("seasonDropdownText")
+
+verbatimTextOutput("positionDropdownText")
+
+verbatimTextOutput("playerSearchText")
+
+verbatimTextOutput("weekRangeText")
+
+verbatimTextOutput("variableDropText")
+```
+
+```{r context = "server"}
+# TESTING INPUTS + ACTION BUTTON REACTIVITY
+seasonText <- eventReactive(input$submitButton, {
+    paste0("Season: ", input$seasonDropdown)
+  })
+
+output$seasonDropdownText <- renderText({
+   seasonText()
+  })
+
+positionText <- eventReactive(input$submitButton, {
+    paste0("Position: ", input$positionDropdown)
+  })
+  
+output$positionDropdownText <- renderText({
+   positionText()
+  })
+
+playerText <- eventReactive(input$submitButton, {
+    paste0("Player: ", input$playerSearch)
+  })
+  
+output$playerSearchText <- renderText({
+   playerText()
+  })
+
+weekRangeText <- eventReactive(input$submitButton, {
+    paste0("Week: ", input$weekRange[1], input$weekRange[2])
+  })
+  
+output$weekRangeText <- renderText({
+   weekRangeText()
+  })
+```
+
+```{r context = "server"}
+# playerVariable <- eventReactive(input$submitButton, {
+#   if(input$variableDropdown == "Air yards") {
+#           df <- season()
+#      
+#           df1 <- player1()
+#           # pivot longer for billboarder plot
+#           air_yards <- df1 %>%
+#             pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
+# 
+#           billboarder::billboarder() %>%
+#               bb_barchart(data = air_yards,
+#                   mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
+#           
+#   } else if (input$variableDropdown == "Targets/Receptions") {
+#         df <- season()
+#         df1 <- player1()
+#         # pivot longer for billboarder plot
+#         df1 <- df1 %>%
+#             pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
+# 
+#         billboarder() %>%
+#           bb_barchart(data = df1,
+#                       mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
+#   } else if (input$variableDropdown == "Yards per carry") {
+#         df <- season()
+#         df1 <- player1()
+#         
+#         df1 <- df1 %>%
+#           mutate(fpts_per_touch = fpts_hppr/(receptions + carries)) %>%
+#           pivot_longer(c(62, 63), names_to = "ypc_str", values_to = "ypc_val")
+#         
+#         billboarder() %>%
+#           bb_linechart(data = df1,
+#                 mapping = bbaes(x = week, y = ypc_val, group = ypc_str))
+#         # rb1 <- get_player_data(season, "Jonathan Taylor", 1, 16)
+#         # rb1 <- rb1 %>%
+#         #   mutate(fpts_per_touch = fpts_hppr/(receptions + carries)) %>%
+#         #   pivot_longer(c(62, 63), names_to = "ypc_str", values_to = "ypc_val")
+#         # tmp1 <- rb1 %>% select(1:7, 59:63)
+#   }
+# })
+#   
+# output$variableGraph <- renderBillboarder({
+#    playerVariable()
+#   })
+```
+
+### **Submit**
+```{r}
+shiny::actionButton("submitButton", label = "Enter", icon("search"))
+```
+
+Row
+--------------------------------------------------
+### Game log
+```{r}
+plotlyOutput("gamelogGraph")
+```
+
+```{r context = "server"}
+gamelogData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else if (!is.null(input$variableDropdown)) {
+    df <- season()
+    # df <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+    df1 <- player1()
+    make_player_plot(df1)
+  }
+})
+
+output$gamelogGraph <- renderPlotly({
+  gamelogData()
+})
+```
+
+
+Row 
+--------------------------------------------------
+### Variable input 
+```{r}
+billboarderOutput("variableGraph")
+```
+
+```{r context = "server"}
+playerVariable <- eventReactive(input$submitButton, {
+  if(input$variableDropdown == "Air yards") {
+          df <- season()
+     
+          df1 <- player1()
+          # pivot longer for billboarder plot
+          air_yards <- df1 %>%
+            pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
+
+          billboarder::billboarder() %>%
+              bb_barchart(data = air_yards,
+                  mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
+          
+  } else if (input$variableDropdown == "Targets/Receptions") {
+        df <- season()
+        df1 <- player1()
+        # pivot longer for billboarder plot
+        df1 <- df1 %>%
+            pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
+
+        billboarder() %>%
+          bb_barchart(data = df1,
+                      mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
+  } else if (input$variableDropdown == "Yards per carry") {
+        df <- season()
+        df1 <- player1()
+        
+        df1 <- df1 %>%
+          mutate(fpts_per_touch = fpts_hppr/(receptions + carries)) %>%
+          pivot_longer(c(62, 63), names_to = "ypc_str", values_to = "ypc_val")
+        
+        billboarder() %>%
+          bb_linechart(data = df1,
+                mapping = bbaes(x = week, y = ypc_val, group = ypc_str))
+        # rb1 <- get_player_data(season, "Jonathan Taylor", 1, 16)
+        # rb1 <- rb1 %>%
+        #   mutate(fpts_per_touch = fpts_hppr/(receptions + carries)) %>%
+        #   pivot_longer(c(62, 63), names_to = "ypc_str", values_to = "ypc_val")
+        # tmp1 <- rb1 %>% select(1:7, 59:63)
+  }
+})
+  
+output$variableGraph <- renderBillboarder({
+   playerVariable()
+  })
+```
+
+### Data table
+```{r}
+DTOutput("seasonDT")
+```
+
+```{r context="server"}
+output$playerSelector <- renderUI({
+  df <- season()
+   selectInput("playerSearch", "Choose name:",
+               as.list(df$full_name),
+               multiple= FALSE,
+               selectize = TRUE)
+})
+
+seasonData <- eventReactive(input$submitButton, {
+    df <- season()
+    if (input$positionDropdown != "All") {
+          df <- df[df$position == input$positionDropdown,]
+          }
+    #select position, team, full_name to join with summarized df
+        df2 <- df %>%
+          select(3, 4, 42, 43)
+        df2 <- unique(df2)
+        df <- df %>%
+            group_by(full_name) %>%
+            summarise(across(6:39, sum))
+        df <- left_join(df2, df, by = "full_name")
+        df <- df %>%
+          select(4, 1:3, 38, 37, 36, 5:35) %>%
+          arrange(-fpts_hppr)
+        
+    # datatabale
+      datatable(df, options = list(scrollX = TRUE, paging = TRUE, searching = TRUE))
+  })
+
+output$seasonDT <- renderDT({
+   seasonData()
+  })
+# observeEvent(input$submitButton, {
+#   season$df_data <- load_data(as.numeric(input$seasonDropdown))
+#              })
+```

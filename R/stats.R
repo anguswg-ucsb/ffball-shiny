@@ -1,9 +1,9 @@
 
-library(tidyverse)
-library(nflfastR)
-library(DT)
-library(plotly)
-library(billboarder)
+# library(tidyverse)
+# library(nflfastR)
+# library(DT)
+# library(plotly)
+# library(billboarder)
 
 
 
@@ -19,7 +19,7 @@ tmp2 <- get_player_data(season, "Calvin Ridley", 1, 16)
 
 ########## PLAYER RECEPTIONS + TARGETS ############
 
-wr1 <- get_player_data(season, "Calvin Ridley", 1, 16)
+rb1 <- get_player_data(season, "Jonathan Taylor", 1, 16)
 
 # plotly
 plot_ly(wr1, x = ~week, y = ~targets,

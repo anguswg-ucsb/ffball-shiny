@@ -91,8 +91,34 @@ verbatimTextOutput("weekRangeText")
 ```{r context = "server"}
 # testData <- eventReactive(input$submitButton, {
 #   if(is.null(input$playerSearch)) {
+#   
+# airyardsData <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
 #     NULL
-#   } else if("Air yards" %in% input$variableDropdown) {
+#   } else {
+#       df <- season()
+#       # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+#       df1 <- player1()
+# # pivot longer for billboarder plot
+#       air_yards <- df1 %>%
+#           pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
+# 
+#       billboarder::billboarder() %>%
+#           bb_barchart(data = air_yards,
+#               mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
+#   }
+# })
+# 
+# if("Air yards" %in% input$variableDropdown) {
+#   output$airyardsGraph <- renderBillboarder({
+#   airyardsData()
+# })
+# }
+# if("Targets/Receptions" %in% input$variableDropdown) {
+# output$targetsGraph <- renderBillboarder({
+#   targetData()
+# })
+# }
 #                 df <- season()
 #                 df1 <- player1()
 #                 # pivot longer for billboarder plot
@@ -215,17 +241,17 @@ verbatimTextOutput("weekRangeText")
 
 
 
+# 
+# output$playerGraph <- renderPlotly({
+#   playerData()
+# })
 
-output$playerGraph <- renderPlotly({
-  playerData()
-})
-
-output$airyardsRankGraph <- renderBillboarder({
-        airyardsRankData()
-      })
-output$airyardsGraph <- renderBillboarder({
-  airyardsData()
-})
+# output$airyardsRankGraph <- renderBillboarder({
+#         airyardsRankData()
+#       })
+# output$airyardsGraph <- renderBillboarder({
+#   airyardsData()
+# })
 # TESTING INPUTS + ACTION BUTTON REACTIVITY
 seasonText <- eventReactive(input$submitButton, {
     paste0("Season: ", input$seasonDropdown)
@@ -566,41 +592,41 @@ plotlyOutput("playerGraph")
 ```
 
 ```{r context="server"}
-# playerData <- eventReactive(input$submitButton, {
-#   if(is.null(input$playerSearch)) {
-#     NULL
-#   } else {
-#     df <- season()
-#     # df <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
-#     df1 <- player1()
-#     make_player_plot(df1)
-#   }
-# })
-# 
-# output$playerGraph <- renderPlotly({
-#   playerData()
-# })
-# 
-# targetData <- eventReactive(input$submitButton, {
-#   if(is.null(input$playerSearch)) {
-#     NULL
-#   } else {
-#       df <- season()
-#       # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
-#       df1 <- player1()
-# # pivot longer for billboarder plot
-#       df1 <- df1 %>%
-#         pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
-# 
-#       billboarder() %>%
-#         bb_barchart(data = df1,
-#                     mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
-#   }
-# })
-# 
-# output$targetsGraph <- renderBillboarder({
-#   targetData()
-# })
+playerData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+    df <- season()
+    # df <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+    df1 <- player1()
+    make_player_plot(df1)
+  }
+})
+
+output$playerGraph <- renderPlotly({
+  playerData()
+})
+
+targetData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+      df <- season()
+      # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+      df1 <- player1()
+# pivot longer for billboarder plot
+      df1 <- df1 %>%
+        pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
+
+      billboarder() %>%
+        bb_barchart(data = df1,
+                    mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
+  }
+})
+
+if(output$targetsGraph <- renderBillboarder({
+  targetData()
+})
 # 
 # airyardsData <- eventReactive(input$submitButton, {
 #   if(is.null(input$playerSearch)) {
@@ -650,9 +676,13 @@ Row {.tabset}
 ------------------------------------
 ### Air Yards
 ```{r}
-billboarderOutput('testGraph')
+billboarderOutput('airyardsGraph')
 ```
 
+### Target
+```{r}
+billboarderOutput('targetsGraph')
+```
 
 ```{r context = "server"}
 # targetRankData <- eventReactive(input$submitButton, {
