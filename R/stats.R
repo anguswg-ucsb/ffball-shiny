@@ -10,93 +10,207 @@
 # LOAD IN SEASON DATA
 season <- load_data(2020)
 # saveRDS(season, file = "data/nfl-season-2020")
-df1 <- season
-df2 <- player_data(season, "Calvin Ridley", 1, 16)
-tmp2 <- get_player_data(season, "Calvin Ridley", 1, 16)
 
-####### player_data() edits #######
-
-
-########## PLAYER RECEPTIONS + TARGETS ############
-
-rb1 <- get_player_data(season, "Jonathan Taylor", 1, 16)
-
-# plotly
-plot_ly(wr1, x = ~week, y = ~targets,
-        type = 'bar',
-        textposition = 'auto',
-        name = "targets",
-        marker = list(color = 'rgba(219, 64, 82, 0.7)',
-                      line = list(color = 'rgba(219, 64, 82, 1.0)',
-                                  width = 2))) %>%
-  add_trace(wr1, x = ~week, y = ~receptions,
-            type = 'bar',
-            name = "receptions",
-            marker = list(color = 'rgba(10, 150, 24, 0.7)',
-                          line = list(color = 'rgba(55, 128, 191, 0.7)',
-                                      width = 2)))
-# highcharter
+################## GAME LOG YARDS + FANTASY POINTS #####################
 highchart() %>%
-  hc_add_series(wr1, type = "column", hcaes(x = week, y = targets)) %>%
-  hc_add_series(wr1, type = "column", hcaes(x = week, y = receptions)) %>%
-  highcharter::hc_labels()
-  # hc_xAxis(categories = ranks2$full_name)
-
-# pivot longer for billboarder plot
-p2 <- wr1 %>%
-  pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
-
-billboarder::billboarder() %>%
-  bb_barchart(data = p2,
-              mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
-
-################# LEAGUE RECEPTIONS + TARGETS RANKS #####################
-
-rb1 <- get_player_data(season, "Dalvin Cook", 1, 16)
-
-wr1 <- get_player_data(season, "Calvin Ridley", 1, 16)
-
-qb1 <- get_player_data(season, "Josh Allen", 1, 16)
-
-highchart() %>%
-  hc_plotOptions(column = list(stacking = "normal")) %>%
-  hc_add_series(qb1, type = "column", hcaes(x = week, y = rushing_yards, stack = "rushing_yards")) %>%
-  hc_add_series(qb1, type = "column", hcaes(x = week, y = avg_dot, stack = "rushing_yards")) %>%
-  hc_add_series(qb1, type = "column", hcaes(x = week, y = passing_yards, stack = "rushing_yards")) %>%
-  hc_yAxis(min = 0)
-  # hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
-
-
-highchart() %>%
-  hc_plotOptions(column = list(stacking = "normal")) %>%
-  hc_add_series(wr1, type = "column", hcaes(x = week, y = receiving_air_yards, stack = "receiving_air_yards")) %>%
-  hc_add_series(wr1, type = "column", hcaes(x = week, y = target_share, stack = "receiving_air_yards")) %>%
-  hc_add_series(wr1, type = "column", hcaes(x = week, y = passing_yards, stack = "rushing_yards")) %>%
-  hc_yAxis(min = 0)
-
-highchart() %>%
-  hc_yAxis_multiples(list(title = list(text = "AIR YARDS"),
+  hc_yAxis_multiples(list(title = list(text = "Yards"),
                           # min=0,
                           # max = max(p3$receiving_air_yards),
                           showFirstLabel = TRUE,
                           showLastLabel = TRUE,
                           opposite = FALSE),
-                     list(title = list(text = "TARGET %"),
+                     list(title = list(text = "Fantasy points"),
                           min=0,
-                          max = .75,
+                          max = 50,
                           # max = max(wr1$target_share),
                           showLastLabel=FALSE,
                           opposite = TRUE)) %>%
-  hc_add_series(wr1, type = "column",
+  hc_plotOptions(column = list(stacking = "normal")) %>%
+  hc_add_series(rb1, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards, stack = "rushing_yards")) %>%
+  hc_add_series(rb1, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards, stack = "rushing_yards")) %>%
+  hc_add_series(rb1, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards, stack = "rushing_yards")) %>%
+  hc_add_series(rb1, name = "Fantasy points",type = "spline", yaxis = 1, hcaes(x = week, y = fpts_hppr))
+hc_yAxis_multiples(list(title = list(text = "Yards"),
+                        # min=0,
+                        # max = max(p3$receiving_air_yards),
+                        showFirstLabel = TRUE,
+                        showLastLabel = TRUE,
+                        opposite = FALSE),
+                   list(title = list(text = "Fantasy points"),
+                        min=0,
+                        max = 50,
+                        # max = max(wr1$target_share),
+                        showLastLabel=FALSE,
+                        opposite = TRUE))
+hc_plotOptions(column = list(stacking = "normal")) %>%
+  hc_yAxis(gridLineColor = list("transparent"))
+hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+
+
+
+#################### PLAYERS #######################
+
+rb1 <- get_player_data(season, "Dalvin Cook", 1, 16)
+
+wr1 <- get_player_data(season, "Terry McLaurin", 1, 16)
+
+qb1 <- get_player_data(season, "Josh Allen", 1, 16)
+
+
+
+##################### AIRYARDS #####################
+highchart() %>%
+  hc_yAxis_multiples(list(title = list(text = "Air yards"),
+                          # min=0,
+                          # max = max(p3$receiving_air_yards),
+                          showFirstLabel = TRUE,
+                          showLastLabel = TRUE,
+                          opposite = FALSE),
+                     list(title = list(text = "Target %"),
+                          min=0,
+                          max = 1,
+                          # max = max(wr1$target_share),
+                          showLastLabel=FALSE,
+                          opposite = TRUE)) %>%
+  hc_add_series(wr1, name = "Air yards", type = "column",
                 hcaes(x = week, y = receiving_air_yards), yAxis = 0 ) %>%
-  hc_add_series(wr1, type = "column",
+  hc_add_series(wr1, name = "Receiving yards", type = "column",
                 hcaes(x = week, y = receiving_yards), yAxis = 0) %>%
-  hc_add_series(wr1, type = "line",
+  # hc_add_series(wr1, name = "Catch rate", type = "line",
+  #               hcaes(x = week, y = catch_rate, yAxis = 1 )) %>%
+  hc_add_series(wr1, name = "Target share", type = "spline",
                 hcaes(x = week, y = target_share), yAxis = 1) %>%
   hc_colors(c("darkcyan", "lightblue", "darkred"))
+  # hc_yAxis(min = 0) %>%
+  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
 
-######## TARGET SHARE ##########
 
+################# TARGETS/RECEPTIONS #####################
+highchart() %>%
+  hc_yAxis_multiples(list(title = list(text = "Targets/Receptions"),
+                          # min=0,
+                          # max = max(p3$receiving_air_yards),
+                          showFirstLabel = TRUE,
+                          showLastLabel = TRUE,
+                          opposite = FALSE),
+                     list(title = list(text = "Target %"),
+                          min=0,
+                          max = 1,
+                          # max = max(wr1$target_share),
+                          showLastLabel=FALSE,
+                          opposite = TRUE)) %>%
+  hc_add_series(wr1, name = "Targets", type = "column",
+                hcaes(x = week, y = targets), yAxis = 0) %>%
+hc_add_series(wr1, name = "Receptions", type = "column",
+              hcaes(x = week, y = receptions), yAxis = 0) %>%
+  hc_add_series(wr1, name = "Target share", type = "spline",
+                hcaes(x = week, y = target_share), yAxis = 1) %>%
+  hc_colors(c("lightblue", "darkcyan", "darkred"))
+
+
+################# YARDS AFTER CATCH #####################
+highchart() %>%
+  hc_yAxis_multiples(list(title = list(text = "Targets/Receptions"),
+                          # min=0,
+                          # max = max(p3$receiving_air_yards),
+                          showFirstLabel = TRUE,
+                          showLastLabel = TRUE,
+                          opposite = FALSE),
+                     list(title = list(text = "Target %"),
+                          min=0,
+                          max = 1,
+                          # max = max(wr1$target_share),
+                          showLastLabel=FALSE,
+                          opposite = TRUE)) %>%
+  hc_add_series(wr1, name = "Receiving yards", type = "column",
+                hcaes(x = week, y = receiving_yards), yAxis = 0) %>%
+  hc_add_series(wr1, name = "Yards after catch", type = "column",
+                hcaes(x = week, y = receiving_yards_after_catch), yAxis = 0) %>%
+  hc_add_series(wr1, name = "Target share", type = "spline",
+                hcaes(x = week, y = target_share), yAxis = 1) %>%
+  hc_colors(c("darkcyan", "lightblue", "darkred"))
+  # hc_yAxis(min = 0) %>%
+  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+
+
+################# YARDS PER CARRY/TOUCH + FPTS PER TOUCH #####################
+highchart() %>%
+    hc_yAxis_multiples(list(title = list(text = "Yards per touch"),
+                            # min=0,
+                            # max = max(p3$receiving_air_yards),
+                            showFirstLabel = TRUE,
+                            showLastLabel = TRUE,
+                            opposite = FALSE),
+                       list(title = list(text = "FPTS per touch"),
+                            min=0,
+                            max = 6,
+                            # max = max(wr1$target_share),
+                            showLastLabel=FALSE,
+                            opposite = TRUE)) %>%
+    hc_add_series(wr1, name = "Yards per touch", type = "column",
+                  hcaes(x = week, y = yards_per_touch, yAxis = 0)) %>%
+    hc_add_series(wr1, name = "Yards per carry", type = "column",
+                hcaes(x = week, y = ypc), yAxis = 0) %>%
+    hc_add_series(wr1, name = "Fantasy points per touch", type = "spline",
+                  hcaes(x = week, y = fpts_pt), yAxis = 1) %>%
+    hc_colors(c("darkcyan", "lightblue", "darkred"))
+  # hc_yAxis(min = 0) %>%
+    hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+
+################## GAME LOG YARDS + FANTASY POINTS ###################
+  highchart() %>%
+    hc_yAxis_multiples(list(title = list(text = "Yards"),
+                            # min=0,
+                            # max = max(p3$receiving_air_yards),
+                            showFirstLabel = TRUE,
+                            showLastLabel = TRUE,
+                            opposite = FALSE),
+                       list(title = list(text = "Fantasy points"),
+                            min=0,
+                            max = 50,
+                            # max = max(wr1$target_share),
+                            showLastLabel=FALSE,
+                            opposite = TRUE)) %>%
+    hc_plotOptions(column = list(stacking = "normal")) %>%
+    hc_add_series(rb1, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards, stack = "rushing_yards")) %>%
+    hc_add_series(rb1, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards, stack = "rushing_yards")) %>%
+    hc_add_series(rb1, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards, stack = "rushing_yards")) %>%
+    hc_add_series(rb1, name = "Fantasy points",type = "spline", yaxis = 1, hcaes(x = week, y = fpts_hppr))
+    hc_yAxis_multiples(list(title = list(text = "Yards"),
+                            # min=0,
+                            # max = max(p3$receiving_air_yards),
+                            showFirstLabel = TRUE,
+                            showLastLabel = TRUE,
+                            opposite = FALSE),
+                       list(title = list(text = "Fantasy points"),
+                            min=0,
+                            max = 50,
+                            # max = max(wr1$target_share),
+                            showLastLabel=FALSE,
+                            opposite = TRUE))
+    hc_plotOptions(column = list(stacking = "normal")) %>%
+    hc_yAxis(gridLineColor = list("transparent"))
+    hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+
+  ### YPC + FPTS/touch
+      highchart() %>%
+    hc_yAxis_multiples(list(title = list(text = "Yards per carry"),
+                            # min=0,
+                            # max = max(p3$receiving_air_yards),
+                            showFirstLabel = TRUE,
+                            showLastLabel = TRUE,
+                            opposite = FALSE),
+                       list(title = list(text = "Fantasy points per touch"),
+                            min=0,
+                            max = 5,
+                            # max = max(wr1$target_share),
+                            showLastLabel=FALSE,
+                            opposite = TRUE)) %>%
+    hc_add_series(rb1, name = "Yards per carry", type = "column",
+                  hcaes(x = week, y = ypc), yAxis = 0) %>%
+    hc_add_series(rb1, name = "Fantasy points per touch", type = "line",
+                  hcaes(x = week, y = fpts_pt), yAxis = 1) %>%
+    hc_colors(c("darkcyan", "darkred"))
 
 
 # target <- season %>%
@@ -173,7 +287,108 @@ billboarder::billboarder() %>%
   bb_barchart(data = air_yards,
               mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
 
-####################### LEAGUE AIR YARDS RANK ##########################
+
+####################### LEAGUE RANKINGS ##########################
+####################### YPC RANK ##########################
+
+rank_touch <- season %>%
+  filter(position == "RB") %>%
+  filter(week >= 1, week <= 16) %>%
+  group_by(player_id) %>%
+  add_count() %>%
+  mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
+         recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
+         pass_yards_pg = (sum(passing_yards)/nrow(.)),
+         tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         tot_carries = sum(carries),
+         tot_touch = tot_recept+ tot_carries,
+         fpts_pg = (sum(fpts_hppr)/n),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         targ_pg = tot_targ/n,
+         recept_pg = tot_recept/n,
+         avg_dot = receiving_air_yards/targets,
+         carries_pg = tot_carries/n,
+         airyards_pg = sum(receiving_air_yards)/n,
+         fpts_pt = fpts_pg/(recept_pg + carries_pg),
+         yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+         passyards_pg = sum(passing_yards)/n,
+         td_int_ratio = sum(passing_tds)/sum(interceptions),
+         ypc = sum(rushing_yards)/tot_carries,
+         yards_per_touch = (sum(rushing_yards) + sum(receiving_yards))/tot_touch,
+         fpts_per_touch = tot_fpts/tot_touch) %>%
+  ungroup() %>%
+  filter(carries_pg >= 6.25) %>%
+  # mutate(total_carries = sum(carries), std = abs(tot_carries - mean(tot_carries)) / sd(tot_carries)) %>%
+  # # filter(std >= 0.6) %>%
+  group_by(player_id) %>%
+  slice(n = 1) %>%
+  ungroup() %>%
+  mutate(avg_ypc = mean(ypc), avg_ypt = mean(yards_per_touch)) %>%
+  arrange(-yards_per_touch) %>%
+  slice(n = 1:36)
+
+highchart() %>%
+  hc_add_series(rank_touch, name = "Yards per touch", type = "column",
+                hcaes(x = full_name, y = yards_per_touch), yAxis = 0 ) %>%
+  hc_add_series(rank_touch, name = "League average", type = "spline",
+                hcaes(x = full_name, y = avg_ypt)) %>%
+  hc_colors(c("darkcyan", "darkred")) %>%
+  hc_xAxis(categories = rank_touch$full_name)
+  # hc_add_series(wr1, name = "Catch rate", type = "line",
+  #               hcaes(x = week, y = catch_rate, yAxis = 1 )) %>%
+  hc_add_series(wr1, name = "Target share", type = "spline",
+                hcaes(x = week, y = target_share), yAxis = 1) %>%
+  hc_colors(c("darkcyan", "lightblue", "darkred"))
+# hc_yAxis(min = 0) %>%
+hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+
+####################### TARGET % RANK ##########################
+
+rank_targ <- season %>%
+  filter(week >= 1, week <= 16) %>%
+  group_by(recent_team) %>%
+  mutate(team_targets = sum(targets), target_share = targets/team_targets) %>%
+  ungroup() %>%
+  filter(position == wr1$position[1]) %>%
+  group_by(player_id) %>%
+  add_count(name = "count1") %>%
+  add_count(name = "count2") %>%
+  mutate(tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         fpts_pg = tot_fpts/count2,
+         targ_pg = tot_targ/count2,
+         recept_pg = tot_recept/count2,
+         avg_targ_share = tot_targ/team_targets) %>%
+  slice(n = 1) %>%
+  arrange(-avg_targ_share) %>%
+  ungroup() %>%
+  # mutate(rank = 1:n(),
+  #        max = max(recept_pg),
+  #        med = median(recept_pg),
+  #        min = min(recept_pg)) %>%
+  slice(n = 1:24)
+
+highchart() %>%
+  hc_add_series(rank_targ, name = "Target share", type = "column",
+                hcaes(x = full_name, y = avg_targ_share), yAxis = 0 ) %>%
+  hc_colors(c("darkcyan")) %>%
+  hc_xAxis(categories = rank_targ$full_name) %>%
+  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+# hc_add_series(wr1, name = "Catch rate", type = "line",
+#               hcaes(x = week, y = catch_rate, yAxis = 1 )) %>%
+hc_add_series(wr1, name = "Target share", type = "spline",
+              hcaes(x = week, y = target_share), yAxis = 1) %>%
+  hc_colors(c("darkcyan", "lightblue", "darkred"))
+# hc_yAxis(min = 0) %>%
+hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+####################### AIR YARDS RANK ##########################
 
 rank_airyards <- season %>%
   filter(position == wr1$position[1]) %>%
@@ -205,15 +420,15 @@ rank_airyards <- season %>%
          min = min(airyards_pg)) %>%
   slice(n = 1:36)
 
-billboarder::billboarder() %>%
-  bb_barchart(data = rank_airyards,
-              mapping = bbaes(x = full_name, y = airyards_pg)) %>%
-  bb_title(text = "AIR YARDS PER GAME") %>%
-  bb_axis(y = list(label = list(text = "YARDS", position = "middle")))
-
-### bubble chart
-ggplotly(ggplot(rank_airyards, aes(x = fpts_pg, y = airyards_pg)) +
-           geom_point(aes(size = tot_recept, col = full_name)))
+# billboarder::billboarder() %>%
+#   bb_barchart(data = rank_airyards,
+#               mapping = bbaes(x = full_name, y = airyards_pg)) %>%
+#   bb_title(text = "AIR YARDS PER GAME") %>%
+#   bb_axis(y = list(label = list(text = "YARDS", position = "middle")))
+#
+# ### bubble chart
+# ggplotly(ggplot(rank_airyards, aes(x = fpts_pg, y = airyards_pg)) +
+#            geom_point(aes(size = tot_recept, col = full_name)))
 
 
 
@@ -224,35 +439,35 @@ ggplot(p2, aes(x = week, y = receiving_yards)) +
   geom_col()
 
 
-# Fantasy points + RUSH YARDS + PASS + REC  in game in weeks
-plot_ly(player, x = ~week, y = ~rushing_yards,
-            type = 'bar',
-            textposition = 'auto',
-            name = "RUSHING",
-            marker = list(color = 'rgba(219, 64, 82, 0.7)',
-            line = list(color = 'rgba(219, 64, 82, 1.0)',
-            width = 2))) %>%
-  add_trace(player, x = ~week, y = ~receiving_yards,
-            type = 'bar',
-            name = "RECIEVING",
-            marker = list(color = 'rgba(10, 150, 24, 0.7)',
-            line = list(color = 'rgba(55, 128, 191, 0.7)',
-            width = 2)))%>%
-  add_trace(player, x = ~week, y = ~passing_yards,
-            type = 'bar',
-            name = "PASSING",
-            marker = list(color = 'rgba(55, 128, 191, 0.7)',
-            line = list(color = 'rgba(55, 128, 191, 0.7)',
-            width = 2))) %>%
-  add_trace(player, x = ~week, y = ~fpts_hppr,
-            type = "scatter",
-            mode = "lines",
-            name = "FPTS",
-            # color = I("green"),
-            line = list(color = 'rgba(0, 0, 0, 1)',
-                        width = 4)) %>%
-  # add_segments(x = min(~week), xend = max(~week), y = ~rush_per_game, yend = ~rush_per_game) %>%
-  layout(barmode = "stack")
+# # Fantasy points + RUSH YARDS + PASS + REC  in game in weeks
+# plot_ly(player, x = ~week, y = ~rushing_yards,
+#             type = 'bar',
+#             textposition = 'auto',
+#             name = "RUSHING",
+#             marker = list(color = 'rgba(219, 64, 82, 0.7)',
+#             line = list(color = 'rgba(219, 64, 82, 1.0)',
+#             width = 2))) %>%
+#   add_trace(player, x = ~week, y = ~receiving_yards,
+#             type = 'bar',
+#             name = "RECIEVING",
+#             marker = list(color = 'rgba(10, 150, 24, 0.7)',
+#             line = list(color = 'rgba(55, 128, 191, 0.7)',
+#             width = 2)))%>%
+#   add_trace(player, x = ~week, y = ~passing_yards,
+#             type = 'bar',
+#             name = "PASSING",
+#             marker = list(color = 'rgba(55, 128, 191, 0.7)',
+#             line = list(color = 'rgba(55, 128, 191, 0.7)',
+#             width = 2))) %>%
+#   add_trace(player, x = ~week, y = ~fpts_hppr,
+#             type = "scatter",
+#             mode = "lines",
+#             name = "FPTS",
+#             # color = I("green"),
+#             line = list(color = 'rgba(0, 0, 0, 1)',
+#                         width = 4)) %>%
+#   # add_segments(x = min(~week), xend = max(~week), y = ~rush_per_game, yend = ~rush_per_game) %>%
+#   layout(barmode = "stack")
 
 ################### PLAYER YPC & YARDS AFTER CONTACT ####################
 rb1 <- get_player_data(season, "Dalvin Cook", 1, 10)
@@ -273,9 +488,9 @@ billboarder::billboarder() %>%
   bb_barchart(data = air_yards,
               mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
 
-#################### LEAGUE YPC & YARDS AFTER CONTACT #####################
+####################### YPC RANK ##########################
 
-rank_ypc <- season %>%
+rank_touch <- season %>%
   filter(position == "RB") %>%
   filter(week >= 1, week <= 16) %>%
   group_by(player_id) %>%
@@ -303,7 +518,8 @@ rank_ypc <- season %>%
          passyards_pg = sum(passing_yards)/n,
          td_int_ratio = sum(passing_tds)/sum(interceptions),
          ypc = sum(rushing_yards)/tot_carries,
-         fpts_per_touch = tot_fpts/(tot_recept + tot_carries)) %>%
+         yards_per_touch = (sum(rushing_yards) + sum(receiving_yards))/tot_touch,
+         fpts_per_touch = tot_fpts/tot_touch) %>%
   ungroup() %>%
   filter(carries_pg >= 6.25) %>%
   # mutate(total_carries = sum(carries), std = abs(tot_carries - mean(tot_carries)) / sd(tot_carries)) %>%
@@ -315,13 +531,38 @@ rank_ypc <- season %>%
   arrange(-ypc) %>%
   slice(n = 1:36)
 
-rank_ypc <- rename(rank_ypc, "Fantasy points per touch" = fpts_per_touch, "Yards per carry" = ypc)
-rank_ypc2 <- rank_ypc %>%
-  pivot_longer(64:65, names_to = "fpts_touch_str", values_to = "fpts_touch_val")
+highchart() %>%
+  hc_yAxis_multiples(list(title = list(text = "Air yards"),
+                          # min=0,
+                          # max = max(p3$receiving_air_yards),
+                          showFirstLabel = TRUE,
+                          showLastLabel = TRUE,
+                          opposite = FALSE),
+                     list(title = list(text = "Target %"),
+                          min=0,
+                          max = 1,
+                          # max = max(wr1$target_share),
+                          showLastLabel=FALSE,
+                          opposite = TRUE)) %>%
+  hc_add_series(wr1, name = "Air yards", type = "column",
+                hcaes(x = week, y = receiving_air_yards), yAxis = 0 ) %>%
+  hc_add_series(wr1, name = "Receiving yards", type = "column",
+                hcaes(x = week, y = receiving_yards), yAxis = 0) %>%
+  # hc_add_series(wr1, name = "Catch rate", type = "line",
+  #               hcaes(x = week, y = catch_rate, yAxis = 1 )) %>%
+  hc_add_series(wr1, name = "Target share", type = "spline",
+                hcaes(x = week, y = target_share), yAxis = 1) %>%
+  hc_colors(c("darkcyan", "lightblue", "darkred"))
+# hc_yAxis(min = 0) %>%
+hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
 
-billboarder::billboarder() %>%
-  bb_barchart(data = rank_ypc2,
-              mapping = bbaes(x = full_name, y = fpts_touch_val, group = fpts_touch_str))
+# rank_ypc <- rename(rank_ypc, "Fantasy points per touch" = fpts_per_touch, "Yards per carry" = ypc, "Yards per touch" = yards_per_touch)
+# rank_ypc2 <- rank_ypc %>%
+#   pivot_longer(64:65, names_to = "fpts_touch_str", values_to = "fpts_touch_val")
+#
+# billboarder::billboarder() %>%
+#   bb_barchart(data = rank_ypc2,
+#               mapping = bbaes(x = full_name, y = fpts_touch_val, group = fpts_touch_str))
 
 lmYPC <- lm(fpts_pg~airyards_pg, data = rank_ypc)
 
@@ -550,9 +791,39 @@ tds_rank <- ranked %>%
   arrange(-total_tds) %>%
   ungroup() %>%
   mutate(rank = 1:n())
-# player2 <- season %>%
-#   filter(full_name == "Dalvin Cook") %>%
-#   select(1:5, 8, 20, 28, 37:40)
+
+################## PLAYER RECEPTIONS + TARGETS ####################
+
+rb1 <- get_player_data(season, "Jonathan Taylor", 1, 16)
+
+# plotly
+plot_ly(wr1, x = ~week, y = ~targets,
+        type = 'bar',
+        textposition = 'auto',
+        name = "targets",
+        marker = list(color = 'rgba(219, 64, 82, 0.7)',
+                      line = list(color = 'rgba(219, 64, 82, 1.0)',
+                                  width = 2))) %>%
+  add_trace(wr1, x = ~week, y = ~receptions,
+            type = 'bar',
+            name = "receptions",
+            marker = list(color = 'rgba(10, 150, 24, 0.7)',
+                          line = list(color = 'rgba(55, 128, 191, 0.7)',
+                                      width = 2)))
+# highcharter
+highchart() %>%
+  hc_add_series(wr1, type = "column", hcaes(x = week, y = targets)) %>%
+  hc_add_series(wr1, type = "column", hcaes(x = week, y = receptions)) %>%
+  highcharter::hc_labels()
+# hc_xAxis(categories = ranks2$full_name)
+
+# pivot longer for billboarder plot
+p2 <- wr1 %>%
+  pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
+
+billboarder::billboarder() %>%
+  bb_barchart(data = p2,
+              mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
 
 plot_ly(player2, x = ~week, y = ~rushing_yards, type = 'bar',
         textposition = 'auto',

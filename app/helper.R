@@ -69,11 +69,13 @@ get_player_data <- function (df_season, name, start, end) {
            avg_dot = receiving_air_yards/targets,
            carries_pg = tot_carries/n,
            airyards_pg = sum(receiving_air_yards)/n,
-           fpts_pt = fpts_pg/(recept_pg + carries_pg),
+           fpts_pt = fpts_hppr/(receptions + carries),
            yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
            passyards_pg = sum(passing_yards)/n,
            td_int_ratio = sum(passing_tds)/sum(interceptions),
-           ypc = rushing_yards/carries)
+           ypc = rushing_yards/carries,
+           yards_per_touch = (rushing_yards + receiving_yards)/(carries + receptions),
+           catch_rate = receptions/targets)
 }
 
 # plot player_data() data
