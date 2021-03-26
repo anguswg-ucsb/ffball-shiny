@@ -2,7 +2,34 @@
 # ```{r}
 # # htmlOutput("profilePic")
 # ```
-#
+
+####################  MAKE PLOTLY GAME LOG GRAPH ####################
+# plot_ly(df, x = ~week, y = ~rushing_yards,
+#         type = 'bar',
+#         textposition = 'auto',
+#         name = "RUSHING",
+#         marker = list(color = 'rgba(219, 64, 82, 0.7)',
+#                       line = list(color = 'rgba(219, 64, 82, 1.0)',
+#                                   width = 2))) %>%
+#   add_trace(df, x = ~week, y = ~receiving_yards, type = 'bar', name = "RECIEVING", marker = list(color = 'rgba(10, 150, 24, 0.7)',
+#                           line = list(color = 'rgba(55, 128, 191, 0.7)',
+#                                       width = 2)))%>%
+#   add_trace(df, x = ~week, y = ~passing_yards,
+#             type = 'bar',
+#             name = "PASSING",
+#             marker = list(color = 'rgba(55, 128, 191, 0.7)',
+#                           line = list(color = 'rgba(55, 128, 191, 0.7)',
+#                                       width = 2))) %>%
+#   add_trace(df, x = ~week, y = ~fpts_hppr,
+#             type = "scatter",
+#             mode = "lines",
+#             name = "FPTS",
+#             line = list(color = 'rgba(0, 0, 0, 1)',
+#                         width = 4)) %>%
+#   # add_segments(x = min(~week), xend = max(~week), y = ~rush_per_game, yend = ~rush_per_game) %>%
+#   layout(barmode = "stack")
+
+
 # ```{r context = "server"}
 # # headshotPic <- eventReactive(input$submitButton, {
 # #   if(is.null(input$playerSearch)) {

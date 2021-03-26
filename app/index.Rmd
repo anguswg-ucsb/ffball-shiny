@@ -5,10 +5,12 @@ output:
   flexdashboard::flex_dashboard:
     navbar:
       - { icon: "fa-question-circle", href: "https://water.noaa.gov/about/nwm", align: right }
-    theme: flatly
+    theme: spacelab
     orientation: rows
-    vertical_layout: scroll
+    source_code: embed
+    vertical_layout: fill
 ---
+
 
 ```{r setup, include = FALSE}
 library(shiny)
@@ -17,18 +19,19 @@ library(shinyWidgets)
 library(shinycustomloader)
 
 library(nflfastR)
-library(DT)
-library(plotly)
-library(BAMMtools)
-library(ggplot2)
+library(gsisdecoder)
+
+
 library(dplyr)
 library(tidyr)
+library(BAMMtools)
+
 library(DT)
-library(plotly)
 library(highcharter)
-library(billboarder)
+
 
 source('helper.R')
+
 ```
 
 ```{r context="server"}
@@ -79,98 +82,77 @@ sliderInput("weekRange", "Week",
                   min = 1, max = 16,
                   value = c(1, 16))
 
-verbatimTextOutput("seasonDropdownText")
-
-verbatimTextOutput("positionDropdownText")
-
-verbatimTextOutput("playerSearchText")
-
-verbatimTextOutput("weekRangeText")
-
-verbatimTextOutput("variableDropText")
+# verbatimTextOutput("seasonDropdownText")
+# 
+# verbatimTextOutput("positionDropdownText")
+# 
+# verbatimTextOutput("playerSearchText")
+# 
+# verbatimTextOutput("weekRangeText")
+# 
+# verbatimTextOutput("variableDropText")
 ```
 
 ```{r context = "server"}
 # TESTING INPUTS + ACTION BUTTON REACTIVITY
-seasonText <- eventReactive(input$submitButton, {
-    paste0("Season: ", input$seasonDropdown)
-  })
-
-output$seasonDropdownText <- renderText({
-   seasonText()
-  })
-
-positionText <- eventReactive(input$submitButton, {
-    paste0("Position: ", input$positionDropdown)
-  })
-  
-output$positionDropdownText <- renderText({
-   positionText()
-  })
-
-playerText <- eventReactive(input$submitButton, {
-    paste0("Player: ", input$playerSearch)
-  })
-  
-output$playerSearchText <- renderText({
-   playerText()
-  })
-
-weekRangeText <- eventReactive(input$submitButton, {
-    paste0("Week: ", input$weekRange[1], input$weekRange[2])
-  })
-  
-output$weekRangeText <- renderText({
-   weekRangeText()
-  })
+# seasonText <- eventReactive(input$submitButton, {
+#     paste0("Season: ", input$seasonDropdown)
+#   })
+# 
+# output$seasonDropdownText <- renderText({
+#    seasonText()
+#   })
+# 
+# positionText <- eventReactive(input$submitButton, {
+#     paste0("Position: ", input$positionDropdown)
+#   })
+#   
+# output$positionDropdownText <- renderText({
+#    positionText()
+#   })
+# 
+# playerText <- eventReactive(input$submitButton, {
+#     paste0("Player: ", input$playerSearch)
+#   })
+#   
+# output$playerSearchText <- renderText({
+#    playerText()
+#   })
+# 
+# weekRangeText <- eventReactive(input$submitButton, {
+#     paste0("Week: ", input$weekRange[1], input$weekRange[2])
+#   })
+#   
+# output$weekRangeText <- renderText({
+#    weekRangeText()
+#   })
 ```
 
-```{r context = "server"}
-# playerVariable <- eventReactive(input$submitButton, {
-#   if(input$variableDropdown == "Air yards") {
-#           df <- season()
-#      
-#           df1 <- player1()
-#           # pivot longer for billboarder plot
-#           air_yards <- df1 %>%
-#             pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
+```{r}
+# tags$div(id = "container2")
 # 
-#           billboarder::billboarder() %>%
-#               bb_barchart(data = air_yards,
-#                   mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
-#           
-#   } else if (input$variableDropdown == "Targets/Receptions") {
-#         df <- season()
-#         df1 <- player1()
-#         # pivot longer for billboarder plot
-#         df1 <- df1 %>%
-#             pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
-# 
-#         billboarder() %>%
-#           bb_barchart(data = df1,
-#                       mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
-#   } else if (input$variableDropdown == "Yards per carry") {
-#         df <- season()
-#         df1 <- player1()
-#         
-#         df1 <- df1 %>%
-#           mutate(fpts_per_touch = fpts_hppr/(receptions + carries)) %>%
-#           pivot_longer(c(62, 63), names_to = "ypc_str", values_to = "ypc_val")
-#         
-#         billboarder() %>%
-#           bb_linechart(data = df1,
-#                 mapping = bbaes(x = week, y = ypc_val, group = ypc_str))
-#         # rb1 <- get_player_data(season, "Jonathan Taylor", 1, 16)
-#         # rb1 <- rb1 %>%
-#         #   mutate(fpts_per_touch = fpts_hppr/(receptions + carries)) %>%
-#         #   pivot_longer(c(62, 63), names_to = "ypc_str", values_to = "ypc_val")
-#         # tmp1 <- rb1 %>% select(1:7, 59:63)
-#   }
-# })
-#   
-# output$variableGraph <- renderBillboarder({
-#    playerVariable()
-#   })
+# test_chart_script <- JS(
+#   "$(function() {
+#   Highcharts.chart('container2', {
+#     chart: {
+#       reflow: false
+#     },
+#     title: {
+#       text: 'Chart reflow is set to false'
+#     },
+#     subtitle: {
+#       text: 'When resizing the window or the frame, the chart should not resize'
+#     },
+#     xAxis: {
+#       categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+#     },
+#     series: [{
+#       data: [29.9, 71.5, 106.4, 129.2, 144.0, 176.0, 135.6, 148.5, 216.4, 194.1, 95.6, 54.4]
+#     }]
+#   });
+#   });"
+# )
+#     tags$script(test_chart_script)
 ```
 
 ### **Submit**
@@ -208,14 +190,16 @@ positionRank <- eventReactive(input$submitButton, {
           mutate(rank = 1:n()) %>% 
           filter(player_id == df2$player_id[1]) %>%
           select(rank)
+        
+          paste0("# ", ranks[1])
           # select(1:5, 39:47, 6:38)
   }
 })
 
 # Output position Rank value box to UI
 output$positionRankBox <- renderValueBox({
-  valueBox(positionRank(), 
-           caption = "Positional rank")
+  valueBox(positionRank(), color = 'success',
+           caption = " ")
 })
 ```
 
@@ -325,7 +309,7 @@ Row
 --------------------------------------------------
 ### Game log
 ```{r}
-highchartOutput("gamelogGraph")
+  highchartOutput("gamelogGraph")
 ```
 
 ```{r context = "server"}
@@ -347,12 +331,12 @@ output$gamelogGraph <- renderHighchart({
 
 Row {.tabset}
 --------------------------------------------------
-### Variable input 
+### Player stats
 ```{r}
 highchartOutput("playerVarGraph")
 ```
 
-```{r context = "server"}
+```{r, fig.keep='none'}
 playerVarData <- eventReactive(input$submitButton, {
   if(input$variableDropdown == "Air yards") {
           df <- season()
@@ -366,6 +350,7 @@ playerVarData <- eventReactive(input$submitButton, {
           #     bb_barchart(data = air_yards,
           #         mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
           highchart() %>%
+              hc_add_theme(hc_theme_smpl()) %>%
                 hc_yAxis_multiples(list(title = list(text = "Air yards"),
                                         min=0,
                                         max = 300,
@@ -386,13 +371,15 @@ playerVarData <- eventReactive(input$submitButton, {
                               hcaes(x = week, y = target_share), yAxis = 1) %>%
                 hc_colors(c("darkcyan", "lightblue", "darkred")) %>%
                 # hc_yAxis(min = 0) %>%
-                hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+                hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
+              
           
   } else if (input$variableDropdown == "Touches") {
         df <- season()
         df1 <- player1()
         
         highchart() %>%
+            hc_add_theme(hc_theme_smpl()) %>%
                 hc_yAxis_multiples(list(title = list(text = "Touches"),
                                         # min=0,
                                         # max = max(p3$receiving_air_yards),
@@ -412,7 +399,8 @@ playerVarData <- eventReactive(input$submitButton, {
                 hc_add_series(df1, name = "Fantasy points per touch", type = "line",
                               hcaes(x = week, y = fpts_pt), yAxis = 1) %>% 
                 hc_colors(c("darkcyan", "lightblue", "darkred")) %>% 
-                hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+                hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL) 
+                
         # pivot longer for billboarder plot
         # df1 <- df1 %>%
         #     pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
@@ -425,6 +413,7 @@ playerVarData <- eventReactive(input$submitButton, {
         df1 <- player1()
         
         highchart() %>%
+            hc_add_theme(hc_theme_smpl()) %>%
                 hc_yAxis_multiples(list(title = list(text = "Targets/Receptions"),
                                         # min=0,
                                         # max = max(p3$receiving_air_yards),
@@ -444,13 +433,15 @@ playerVarData <- eventReactive(input$submitButton, {
                 hc_add_series(df1, name = "Target share", type = "line",
                               hcaes(x = week, y = target_share), yAxis = 1) %>%
                 hc_colors(c("lightblue", "darkcyan", "darkred")) %>% 
-                hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+                hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL) 
+                
         
   } else if (input$variableDropdown == "Yards after catch") {
         df <- season()
         df1 <- player1()
         
         highchart() %>%
+            hc_add_theme(hc_theme_smpl()) %>%
               hc_yAxis_multiples(list(title = list(text = "Yards after catch"),
                                       # min=0,
                                       # max = max(p3$receiving_air_yards),
@@ -470,7 +461,8 @@ playerVarData <- eventReactive(input$submitButton, {
               hc_add_series(df1, name = "Target share", type = "line",
                             hcaes(x = week, y = target_share), yAxis = 1) %>%
               hc_colors(c("darkcyan", "lightblue", "darkred")) %>% 
-              hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+              hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
+              
 
   } else if (input$variableDropdown == "Yards per touch") {
         df <- season()
@@ -478,6 +470,7 @@ playerVarData <- eventReactive(input$submitButton, {
         
         ################# YARDS PER CARRY/TOUCH + FPTS PER TOUCH #####################
           highchart() %>%
+            hc_add_theme(hc_theme_smpl()) %>%
               hc_yAxis_multiples(list(title = list(text = "Yards per touch"),
                                       # min=0,
                                       # max = max(p3$receiving_air_yards),
@@ -498,7 +491,8 @@ playerVarData <- eventReactive(input$submitButton, {
                             hcaes(x = week, y = fpts_pt), yAxis = 1) %>%
               hc_colors(c("darkcyan", "lightblue", "darkred")) %>% 
               # hc_yAxis(min = 0) %>%
-              hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+              hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL) 
+              
 
         # df1 <- df1 %>%
         #   mutate(fpts_per_touch = fpts_hppr/(receptions + carries)) %>%
@@ -520,7 +514,7 @@ output$playerVarGraph <- renderHighchart({
   })
 ```
 
-### League rankings
+### Positional ranking
 ```{r}
 highchartOutput("leagueRankGraph")
 ```
@@ -559,9 +553,12 @@ leagueRankData <- eventReactive(input$submitButton, {
           slice(n = 1:24)
           
         highchart() %>%
+            hc_add_theme(hc_theme_smpl()) %>%
           hc_add_series(rank_airyards, type = "column", hcaes(x = full_name, y = airyards_pg)) %>%
-          hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%') %>%
-          hc_xAxis(categories = rank_airyards$full_name)
+          hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL) %>%
+          hc_xAxis(categories = rank_airyards$full_name) 
+          
+         
             
             # billboarder() %>%
             #     bb_barchart(data = rank_airyards,
@@ -596,11 +593,14 @@ leagueRankData <- eventReactive(input$submitButton, {
             slice(n = 1:24)
         
         highchart() %>%
+           hc_add_theme(hc_theme_smpl()) %>%
             hc_add_series(rank_targ, name = "Target share", type = "column",
                           hcaes(x = full_name, y = avg_targ_share), yAxis = 0 ) %>%
             hc_colors(c("darkcyan")) %>%
             hc_xAxis(categories = rank_targ$full_name) %>% 
-            hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+            hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
+            
+       
         
         # highchart() %>%
         #     hc_add_series(rank_targ, type = "column", hcaes(x = full_name, y = recept_pg)) %>%
@@ -664,13 +664,15 @@ leagueRankData <- eventReactive(input$submitButton, {
           slice(n = 1:24)
         
       highchart() %>% 
+          hc_add_theme(hc_theme_smpl()) %>%
           hc_add_series(rank_ypc, name = "Yards per touch", type = "column",
                         hcaes(x = full_name, y = yards_per_touch), yAxis = 0 ) %>%
           hc_add_series(rank_ypc, name = "League average", type = "spline",
                         hcaes(x = full_name, y = avg_ypt)) %>%
           hc_colors(c("darkcyan", "darkred")) %>% 
           hc_xAxis(categories = rank_ypc$full_name) %>% 
-          hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+          hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
+          
               
         # rank_ypc <- rename(rank_ypc, "Fantasy points per touch" = fpts_per_touch, "Yards per carry" = ypc)
         # rank_ypc <- rank_ypc %>%
@@ -682,7 +684,45 @@ leagueRankData <- eventReactive(input$submitButton, {
   } else if (input$variableDropdown == "Touches") {
     
   }  else if (input$variableDropdown == "Yards after catch") {
-    
+            df1 <- season()
+            df2 <- player1()
+        rank_after_catch <- df1 %>%
+              add_count(name = "count1") %>%
+              filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+              group_by(recent_team) %>%
+              mutate(team_targets = sum(targets), target_share = targets/team_targets) %>%
+              ungroup() %>%
+              filter(position == df2$position[1]) %>%
+              group_by(player_id) %>%
+              add_count(name = "count2") %>%
+              mutate(tot_fpts = sum(fpts_hppr),
+                     tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+                     tot_recept = sum(receptions),
+                     tot_targ = sum(targets),
+                     fpts_pg = tot_fpts/count2,
+                     targ_pg = tot_targ/count2,
+                     recept_pg = tot_recept/count2,
+                     avg_targ_share = tot_targ/team_targets,
+                     tot_yards_after_catch = sum(receiving_yards_after_catch),
+                     yards_after_catch_pg = tot_yards_after_catch/count2) %>%
+              slice(n = 1) %>%
+              arrange(-tot_yards_after_catch) %>%
+              ungroup() %>%
+              slice(n = 1:24)
+
+          rank_after_catch$yards_after_catch_pg <- round(rank_after_catch$yards_after_catch_pg, 2)
+          
+        highchart() %>%
+            hc_add_theme(hc_theme_smpl()) %>%
+          hc_add_series(rank_after_catch, name = "Total YAC", type = "column",
+                        hcaes(x = full_name, y = tot_yards_after_catch), yAxis = 0 ) %>%
+          hc_add_series(rank_after_catch, name = "YAC per game", type = "column",
+                        hcaes(x = full_name, y = yards_after_catch_pg), yAxis = 0 ) %>%
+          hc_colors(c("darkcyan", "darkred")) %>%
+          hc_xAxis(categories = rank_after_catch$full_name) %>%
+          hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
+          
+        
   }
 })
   
