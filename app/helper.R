@@ -82,12 +82,34 @@ get_player_data <- function (df_season, name, start, end) {
 make_player_plot <- function(df) {
   # Fantasy points + RUSH YARDS + PASS + REC  in game in weeks
   highchart() %>%
-    hc_plotOptions(column = list(stacking = "normal")) %>%
-    hc_add_series(df, name = "Rushing yards", type = "column", hcaes(x = week, y = rushing_yards, stack = "rushing_yards")) %>%
-    hc_add_series(df, name = "Receiving yards", type = "column", hcaes(x = week, y = receiving_yards, stack = "rushing_yards")) %>%
-    hc_add_series(df, name = "Passing yards",type = "column", hcaes(x = week, y = passing_yards, stack = "rushing_yards")) %>%
-    hc_yAxis(min = 0) %>%
-    hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+    hc_yAxis_multiples(list(title = list(text = "Yards"),
+                            min=0,
+                            # # max = 575,
+                            showFirstLabel = TRUE,
+                            showLastLabel = TRUE,
+                            opposite = FALSE),
+                       list(title = list(text = "Fantasy points"),
+                            min=0,
+                            max = 1,
+                             # max = max(wr1$target_share),
+                            showLastLabel=TRUE,
+                            opposite = TRUE)) %>%
+    hc_add_series(df, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards)) %>%
+    # hc_plotOptions(column = list(stacking = "normal")) %>%
+    # hc_add_series(df, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards, stack = "rushing_yards")) %>%
+    hc_add_series(df, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards)) %>%
+    hc_add_series(df, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards)) %>%
+    hc_add_series(df, name = "Fantasy points",type = "spline", yaxis = 1, hcaes(x = week, y = fpts_hppr)) %>%
+    hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%') %>%
+    hc_colors(c("darkcyan", "lightblue", "lightgreen", "darkred"))
+
+  # highchart() %>%
+  #   hc_plotOptions(column = list(stacking = "normal")) %>%
+  #   hc_add_series(df, name = "Rushing yards", type = "column", hcaes(x = week, y = rushing_yards, stack = "rushing_yards")) %>%
+  #   hc_add_series(df, name = "Receiving yards", type = "column", hcaes(x = week, y = receiving_yards, stack = "rushing_yards")) %>%
+  #   hc_add_series(df, name = "Passing yards",type = "column", hcaes(x = week, y = passing_yards, stack = "rushing_yards")) %>%
+  #   hc_yAxis(min = 0) %>%
+  #   hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
   # plot_ly(df, x = ~week, y = ~rushing_yards,
   #         type = 'bar',
   #         textposition = 'auto',

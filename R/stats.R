@@ -30,6 +30,7 @@ highchart() %>%
   hc_add_series(rb1, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards, stack = "rushing_yards")) %>%
   hc_add_series(rb1, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards, stack = "rushing_yards")) %>%
   hc_add_series(rb1, name = "Fantasy points",type = "spline", yaxis = 1, hcaes(x = week, y = fpts_hppr))
+
 hc_yAxis_multiples(list(title = list(text = "Yards"),
                         # min=0,
                         # max = max(p3$receiving_air_yards),
@@ -80,7 +81,7 @@ highchart() %>%
   #               hcaes(x = week, y = catch_rate, yAxis = 1 )) %>%
   hc_add_series(wr1, name = "Target share", type = "spline",
                 hcaes(x = week, y = target_share), yAxis = 1) %>%
-  hc_colors(c("darkcyan", "lightblue", "darkred"))
+  hc_colors(c("darkcyan", "lightblue", "darkred")) %>%
   # hc_yAxis(min = 0) %>%
   hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
 
@@ -88,8 +89,8 @@ highchart() %>%
 ################# TARGETS/RECEPTIONS #####################
 highchart() %>%
   hc_yAxis_multiples(list(title = list(text = "Targets/Receptions"),
-                          # min=0,
-                          # max = max(p3$receiving_air_yards),
+                          min=0,
+                          max = max(wr1$targets),
                           showFirstLabel = TRUE,
                           showLastLabel = TRUE,
                           opposite = FALSE),
@@ -110,9 +111,9 @@ hc_add_series(wr1, name = "Receptions", type = "column",
 
 ################# YARDS AFTER CATCH #####################
 highchart() %>%
-  hc_yAxis_multiples(list(title = list(text = "Targets/Receptions"),
-                          # min=0,
-                          # max = max(p3$receiving_air_yards),
+  hc_yAxis_multiples(list(title = list(text = "Yards"),
+                          min=0,
+                          max = max(wr1$receiving_air_yards),
                           showFirstLabel = TRUE,
                           showLastLabel = TRUE,
                           opposite = FALSE),
@@ -128,8 +129,8 @@ highchart() %>%
                 hcaes(x = week, y = receiving_yards_after_catch), yAxis = 0) %>%
   hc_add_series(wr1, name = "Target share", type = "spline",
                 hcaes(x = week, y = target_share), yAxis = 1) %>%
-  hc_colors(c("darkcyan", "lightblue", "darkred"))
-  # hc_yAxis(min = 0) %>%
+  hc_colors(c("darkcyan", "lightblue", "darkred")) %>%
+  # hc_yAxis(min = list(ymin = 0)) %>%
   hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
 
 
@@ -357,7 +358,6 @@ rank_targ <- season %>%
   filter(position == wr1$position[1]) %>%
   group_by(player_id) %>%
   add_count(name = "count1") %>%
-  add_count(name = "count2") %>%
   mutate(tot_fpts = sum(fpts_hppr),
          tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
          tot_recept = sum(receptions),
@@ -369,10 +369,6 @@ rank_targ <- season %>%
   slice(n = 1) %>%
   arrange(-avg_targ_share) %>%
   ungroup() %>%
-  # mutate(rank = 1:n(),
-  #        max = max(recept_pg),
-  #        med = median(recept_pg),
-  #        min = min(recept_pg)) %>%
   slice(n = 1:24)
 
 highchart() %>%

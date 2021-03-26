@@ -1,0 +1,744 @@
+---
+title: "Fantasy land"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    navbar:
+      - { icon: "fa-question-circle", href: "https://water.noaa.gov/about/nwm", align: right }
+    theme: flatly
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include = FALSE}
+library(shiny)
+library(flexdashboard)
+library(shinyWidgets)
+library(shinycustomloader)
+
+library(nflfastR)
+library(DT)
+library(plotly)
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(DT)
+library(plotly)
+library(highcharter)
+library(billboarder)
+
+source('helper.R')
+```
+
+```{r context="server"}
+ # season <<- reactive({
+     # season <- load_data(as.numeric(input$seasonDropdown))
+ # })
+# season <- reactiveValues()
+season <<- reactive({
+  dataset <- load_data(as.numeric(input$seasonDropdown))
+})
+
+player1 <- reactive({
+  df2 <- get_player_data(season(), input$playerSearch, input$weekRange[1], input$weekRange[2])
+})
+
+```
+
+Player stats {data-icon="fa-tint"}
+====================================
+
+Inputs {.sidebar}
+-------------------------------------
+
+### Filters
+```{r}
+# dqshiny::autocomplete_input("auto", "Search for a County:",
+#                                 value = "",
+#                                 max_options = 5,
+#                                 options = list(season()$full_name))
+
+selectInput("seasonDropdown",
+            label = "Season", 
+            selected = 2020,
+            choices = c("All", 2020:1999))
+
+selectInput("positionDropdown",
+            label = "Position", 
+            choices = c("All", "QB", "RB", "WR", "TE"))
+
+uiOutput("playerSelector")
+
+# Input: Specification of range within an interval ----
+sliderInput("weekRange", "Week",
+                  min = 1, max = 16,
+                  value = c(1, 16))
+
+verbatimTextOutput("seasonDropdownText")
+
+verbatimTextOutput("positionDropdownText")
+
+verbatimTextOutput("playerSearchText")
+
+verbatimTextOutput("weekRangeText")
+```
+
+```{r context = "server"}
+# TESTING INPUTS + ACTION BUTTON REACTIVITY
+seasonText <- eventReactive(input$submitButton, {
+    paste0("Season: ", input$seasonDropdown)
+  })
+
+output$seasonDropdownText <- renderText({
+   seasonText()
+  })
+
+positionText <- eventReactive(input$submitButton, {
+    paste0("Position: ", input$positionDropdown)
+  })
+  
+output$positionDropdownText <- renderText({
+   positionText()
+  })
+
+playerText <- eventReactive(input$submitButton, {
+    paste0("Player: ", input$playerSearch)
+  })
+  
+output$playerSearchText <- renderText({
+   playerText()
+  })
+
+weekRangeText <- eventReactive(input$submitButton, {
+    paste0("Week: ", input$weekRange[1], input$weekRange[2])
+  })
+  
+output$weekRangeText <- renderText({
+   weekRangeText()
+  })
+```
+
+### **Submit**
+```{r}
+shiny::actionButton("submitButton", label = "Enter", icon("search"))
+```
+
+Row
+----------------------------------------
+### Position rank
+```{r}
+valueBoxOutput("positionRankBox")
+```
+
+### FPTS/game
+```{r}
+gaugeOutput("fppgGauge")
+```
+
+### Yards/game
+```{r}
+gaugeOutput("YardsGauge")
+```
+
+```{r context="server"}
+# Total FPTS positional rank during period
+positionRank <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+      NULL
+  } else {
+      # df <- season()
+      # df <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+    df1 <- season()
+    df2 <- player1()
+  # find position rank --- total fpts during period
+    ranks <- df1 %>%
+      filter(position == df2$position[1]) %>%
+      filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+      group_by(player_id) %>%
+      add_count() %>%
+      mutate(total_fpts = sum(fpts_hppr),
+             total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+             fpts_pg = total_fpts/n) %>%
+      slice(n = 1) %>%
+      arrange(-total_fpts) %>%
+      ungroup() %>%
+      mutate(rank = 1:n()) %>% 
+      filter(player_id == df2$player_id[1]) %>%
+      select(rank)
+      # select(1:5, 39:47, 6:38)
+  }
+})
+
+# Output position Rank value box to UI
+output$positionRankBox <- renderValueBox({
+  valueBox(positionRank(), 
+           caption = "Positional rank")
+})
+```
+
+
+```{r context="server"}
+# FPTS/Game number during period
+# fppgValue <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#       NULL
+#   } else {
+#       df1 <- season()
+#       df2 <- player1()
+#   # find position rank --- total fpts during period
+#       ranks <- df1 %>%
+#         filter(position == df2$position[1]) %>%
+#         filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+#         group_by(player_id) %>%
+#         add_count() %>%
+#         mutate(total_fpts = sum(fpts_hppr),
+#                total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+#                fpts_pg = total_fpts/n) %>%
+#         slice(n = 1) %>%
+#         arrange(-fpts_pg) %>%
+#         ungroup() %>%
+#         mutate(rank = 1:n()) %>%
+#         filter(player_id == df2$player_id[1]) %>%
+#         select(fpts_pg) %>% 
+#         round(2)
+#   }
+# })
+# 
+# # Output position Rank value box to UI
+# output$fppgBox <- renderValueBox({
+#   valueBox(fppgValue(), 
+#            caption = "FPTS/game")
+# })
+```
+
+```{r context = "server"}
+fppgGaugeValue <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+      NULL
+  } else {
+      df1 <- season()
+      df2 <- player1()
+  # find position rank --- total fpts during period
+      ranks <- df1 %>%
+        filter(position == df2$position[1]) %>%
+        filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+        group_by(player_id) %>%
+        add_count() %>%
+        mutate(total_fpts = sum(fpts_hppr),
+               total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+               fpts_pg = total_fpts/n) %>%
+        slice(n = 1) %>%
+        arrange(-fpts_pg) %>%
+        ungroup() %>%
+        filter(n >= 5) 
+        
+    jenks_df <- BAMMtools::getJenksBreaks(ranks$fpts_pg, 4) %>% 
+        data.frame() %>%
+        mutate(brk = letters[1:4]) %>%
+        rename(jenk = ".") %>% 
+        pivot_wider(jenk, names_from = "brk", values_from = "jenk")
+
+    ranks <- bind_cols(ranks, jenks_df)
+    
+    ranks <- ranks %>% 
+       filter(player_id == df2$player_id[1]) %>%
+       select(fpts_pg, a, b, c, d) %>%
+       round(2)
+  }
+})
+
+output$fppgGauge <- renderGauge({
+  df <- fppgGaugeValue()
+  
+  gauge(df$fpts_pg, min = df$a, max = df$d,
+        gaugeSectors(
+  success = c((df$c + 1), df$d),
+  warning = c((df$b + 1), df$c),
+  danger = c(df$a, df$b)))
+})
+
+YardsGaugeValue <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+      NULL
+  } else {
+      df1 <- season()
+      df2 <- player1()
+        rank_yards <- df1 %>%
+          filter(position == df2$position[1]) %>%
+          filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+          group_by(player_id) %>%
+          add_count() %>%
+          mutate(tot_fpts = sum(fpts_hppr),
+                 tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+                 tot_recept = sum(receptions),
+                 tot_targ = sum(targets),
+                 fpts_pg = tot_fpts/n,
+                 targ_pg = tot_targ/n,
+                 recept_pg = tot_recept/n,
+                 yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n) %>%
+          slice(n = 1) %>%
+          arrange(-yards_pg) %>%
+          ungroup() %>%
+          filter(n >= 5)
+        jenks_df <- BAMMtools::getJenksBreaks(rank_yards$yards_pg, 4) %>%
+          data.frame() %>%
+          mutate(brk = letters[1:4]) %>%
+          rename(jenk = ".") %>%
+          pivot_wider(jenk, names_from = "brk", values_from = "jenk")
+        rank_yards <- bind_cols(rank_yards, jenks_df)
+        rank_yards <- rank_yards %>%
+          filter(player_id == df2$player_id[1]) %>%
+          select(yards_pg, a, b, c, d) %>%
+          round(2)
+  }
+})
+      # if the searched player is a QB, passyards_pg gauge will output, not total yards
+      # if(df2$position[1] == "QB") {
+      #   rank_pass <- season %>%
+      #     filter(position == df2$position[1]) %>%
+      #     filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+      #     group_by(player_id) %>%
+      #     add_count() %>%
+      #     mutate(tot_fpts = sum(fpts_hppr),
+      #            tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+      #            tot_recept = sum(receptions),
+      #            tot_targ = sum(targets),
+      #            fpts_pg = tot_fpts/n,
+      #            targ_pg = tot_targ/n,
+      #            recept_pg = tot_recept/n,
+      #            yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+      #            passyards_pg = sum(passing_yards)/n,
+      #            td_int_ratio = sum(passing_tds)/sum(interceptions)) %>%
+      #     slice(n = 1) %>%
+      #     arrange(-passyards_pg) %>%
+      #     ungroup() %>%
+      #     filter(n >= 5)
+      # 
+      #   jenks_df <- BAMMtools::getJenksBreaks(rank_pass$passyards_pg, 4) %>%
+      #     data.frame() %>%
+      #     mutate(brk = letters[1:4]) %>%
+      #     rename(jenk = ".") %>%
+      #     pivot_wider(jenk, names_from = "brk", values_from = "jenk")
+      # 
+      #   rank_pass <- bind_cols(rank_pass, jenks_df)
+      #   rank_pass2 <- rank_pass %>%
+      #       filter(player_id == df2$player_id[1]) %>%
+      #     select(passyards_pg, a, b, c, d, position) 
+      #   rank_pass2[,1:4] <- round(rank_pass2[,1:4], 2)
+      #   
+      # } else {
+      #   rank_yards <- df1 %>%
+      #     filter(position == df2$position[1]) %>%
+      #     filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+      #     group_by(player_id) %>%
+      #     add_count() %>%
+      #     mutate(tot_fpts = sum(fpts_hppr),
+      #            tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+      #            tot_recept = sum(receptions),
+      #            tot_targ = sum(targets),
+      #            fpts_pg = tot_fpts/n,
+      #            targ_pg = tot_targ/n,
+      #            recept_pg = tot_recept/n,
+      #            yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n) %>%
+      #     slice(n = 1) %>%
+      #     arrange(-yards_pg) %>%
+      #     ungroup() %>%
+      #     filter(n >= 5)
+      #   
+      #   jenks_df <- BAMMtools::getJenksBreaks(rank_yards$yards_pg, 4) %>% 
+      #     data.frame() %>%
+      #     mutate(brk = letters[1:4]) %>%
+      #     rename(jenk = ".") %>% 
+      #     pivot_wider(jenk, names_from = "brk", values_from = "jenk")
+      # 
+      #   rank_yards <- bind_cols(rank_yards, jenks_df)
+      #   rank_yards <- rank_yards %>% 
+      #     filter(player_id == df2$player_id[1]) %>%
+      #     select(yards_pg, a, b, c, d, position) %>%
+      #     round(2)
+      # } 
+      # 
+       # rank_yards <- df1 %>%
+       #  filter(position == df2$position[1]) %>%
+       #  filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+       #  group_by(player_id) %>%
+       #  add_count() %>%
+       #  mutate(tot_fpts = sum(fpts_hppr),
+       #         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+       #         tot_recept = sum(receptions),
+       #         tot_targ = sum(targets),
+       #         fpts_pg = tot_fpts/n,
+       #         targ_pg = tot_targ/n,
+       #         recept_pg = tot_recept/n,
+       #         yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+       #         td_int_ratio= %>%
+       #  slice(n = 1) %>%
+       #  arrange(-yards_pg) %>%
+       #  ungroup() %>%
+       #  filter(n >= 5)
+
+output$YardsGauge <- renderGauge({
+  df <- YardsGaugeValue()
+  
+  gauge(df$yards_pg, min = df$a, max = df$d,
+        gaugeSectors(
+            success = c((df$c + 1), df$d),
+            warning = c((df$b + 1), df$c),
+            danger = c(df$a, df$b)))
+})
+ #  if(df$position[1] == "QB") {
+ #    gauge(df$passyards_pg, min = df$a, max = df$d,
+ #        gaugeSectors(
+ #          success = c((df$c + 1), df$d),
+ #          warning = c((df$b + 1), df$c),
+ #          danger = c(df$a, df$b)))
+ #  } else {
+ # gauge(df$yards_pg, min = df$a, max = df$d,
+ #        gaugeSectors(
+ #          success = c((df$c + 1), df$d),
+ #          warning = c((df$b + 1), df$c),
+ #          danger = c(df$a, df$b)))
+ #  }
+
+# 
+# tdIntGaugeValue <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#       NULL
+#   } else {
+#       df1 <- season()
+#       df2 <- player1()
+#   # find position rank --- total fpts during period
+#       ranks <- df1 %>%
+#         filter(position == df2$position[1]) %>%
+#         filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+#         group_by(player_id) %>%
+#         add_count() %>%
+#         mutate(total_fpts = sum(fpts_hppr),
+#                total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+#                fpts_pg = total_fpts/n) %>%
+#         slice(n = 1) %>%
+#         arrange(-fpts_pg) %>%
+#         ungroup() %>%
+#         filter(n >= 5) 
+#         
+#     jenks_df <- BAMMtools::getJenksBreaks(ranks$fpts_pg, 4) %>% 
+#         data.frame() %>%
+#         mutate(brk = letters[1:4]) %>%
+#         rename(jenk = ".") %>% 
+#         pivot_wider(jenk, names_from = "brk", values_from = "jenk")
+# 
+#     ranks <- bind_cols(ranks, jenks_df)
+#     
+#     ranks <- ranks %>% 
+#        filter(player_id == df2$player_id[1]) %>%
+#        select(fpts_pg, a, b, c, d) %>%
+#        round(2)
+#   }
+# })
+# 
+# output$fppgGauge <- renderGauge({
+#   df <- tdIntGaugeValue()
+#   
+#   gauge(df$fpts_pg, min = df$a, max = df$d,
+#         gaugeSectors(
+#   success = c((df$c + 1), df$d),
+#   warning = c((df$b + 1), df$c),
+#   danger = c(df$a, df$b)))
+# })
+```
+
+
+Row {.tabset}
+----------------------------------------
+### Yards/FPTS game log
+```{r}
+plotlyOutput("playerGraph")
+```
+
+### Yards per carry
+```{r}
+billboarderOutput('ypcGraph')
+```
+
+### Air Yards
+```{r}
+billboarderOutput('airyardsGraph')
+```
+
+### Targets/receptions 
+```{r}
+billboarderOutput('targetsGraph')
+```
+
+```{r context="server"}
+playerData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+    df <- season()
+    # df <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+    df1 <- player1()
+    make_player_plot(df1)
+  }
+})
+
+output$playerGraph <- renderPlotly({
+  playerData()
+})
+
+targetData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+      df <- season()
+      # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+      df1 <- player1()
+# pivot longer for billboarder plot
+      df1 <- df1 %>%
+        pivot_longer(29:28, names_to = "rcpt_str", values_to = "rcpt_val")
+
+      billboarder() %>%
+        bb_barchart(data = df1,
+                    mapping = bbaes(x = week, y = rcpt_val, group = rcpt_str))
+  }
+})
+
+output$targetsGraph <- renderBillboarder({
+  targetData()
+})
+
+airyardsData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+      df <- season()
+      # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+      df1 <- player1()
+# pivot longer for billboarder plot
+      air_yards <- df1 %>%
+          pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
+
+      billboarder::billboarder() %>%
+          bb_barchart(data = air_yards,
+              mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
+  }
+})
+
+output$airyardsGraph <- renderBillboarder({
+  airyardsData()
+})
+
+ypcData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+      df <- season()
+      # df1 <- get_player_data(df, input$playerSearch, input$weekRange[1], input$weekRange[2])
+      df1 <- df1 %>%
+        mutate(fpts_per_touch = fpts_hppr/(receptions + carries)) %>%
+        pivot_longer(c(62, 63), names_to = "ypc_str", values_to = "ypc_val")
+
+      billboarder::billboarder() %>%
+        bb_linechart(data = df1,
+              mapping = bbaes(x = week, y = ypc_val, group = ypc_str))
+  }
+})
+
+output$ypcGraph <- renderBillboarder({
+  ypcData()
+})
+```
+
+
+Row {.tabset}
+------------------------------------
+### FPTS position Ranking
+```{r}
+billboarderOutput("positionRankGraph")
+```
+
+### YPC Ranking
+```{r}
+billboarderOutput('airyardsRankGraph')
+```
+
+### Airyards Ranking
+```{r}
+billboarderOutput('airyardsRankGraph')
+```
+
+### Targets/receptions Ranking
+```{r}
+billboarderOutput('targetsRankGraph')
+```
+
+```{r context = "server"}
+posRankData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+      df1 <- season()
+      df2 <- player1()
+  
+      rank_fpts <- df1 %>%
+          filter(position == df2$position[1]) %>%
+          filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+          group_by(player_id) %>%
+          add_count() %>%
+          mutate(tot_fpts = sum(fpts_hppr),
+                 tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+                 tot_recept = sum(receptions),
+                 tot_targ = sum(targets),
+                 fpts_pg = tot_fpts/n,
+                 targ_pg = tot_targ/n,
+                 recept_pg = tot_recept/n) %>%
+          slice(n = 1) %>%
+          arrange(-fpts_pg) %>%
+          ungroup() %>%
+          filter(n >= 5) %>%
+          slice(n = 1:24)
+      rank_fpts$fpts_pg <- round(rank_fpts$fpts_pg, 2)
+    
+      billboarder() %>%
+          bb_barchart(data = rank_fpts,
+              mapping = bbaes(x = full_name, y = fpts_pg))
+    }
+})
+
+output$positionRankGraph <- renderBillboarder({
+        posRankData()
+      })
+
+targetRankData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+      df1 <- season()
+      df2 <- player1()
+      
+      rank_targ <- df1 %>%
+          filter(position == df2$position[1]) %>%
+          filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+          group_by(player_id) %>%
+          add_count() %>%
+          mutate(tot_fpts = sum(fpts_hppr),
+                 tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+                 tot_recept = sum(receptions),
+                 tot_targ = sum(targets),
+                 fpts_pg = tot_fpts/n,
+                 targ_pg = tot_targ/n,
+                 recept_pg = tot_recept/n) %>%
+          slice(n = 1) %>%
+          arrange(-recept_pg) %>%
+          ungroup() %>%
+          mutate(rank = 1:n(),
+                 max = max(recept_pg),
+                 med = median(recept_pg),
+                 min = min(recept_pg)) %>%
+          slice(n = 1:24)
+    
+      # pivot longer for billboarder plot
+      rank_targ <- rank_targ %>%
+          pivot_longer(50:51, names_to = "rcpt_str", values_to = "rcpt_val")
+      # round values to 2 decimals
+      rank_targ$rcpt_val <- round(rank_targ$rcpt_val, 2)
+
+      billboarder() %>%
+          bb_barchart(data = rank_targ,
+              mapping = bbaes(x = full_name, y = rcpt_val, group = rcpt_str))
+    }
+})
+
+output$targetsRankGraph <- renderBillboarder({
+        targetRankData()
+      })
+
+airyardsRankData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else {
+      df1 <- season()
+      df2 <- player1()
+      
+      rank_airyards <- df1 %>%
+        filter(position == df2$position[1]) %>%
+        filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+        group_by(player_id) %>%
+        add_count() %>%
+        mutate(tot_fpts = sum(fpts_hppr),
+               tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+               tot_recept = sum(receptions),
+               tot_targ = sum(targets),
+               tot_carries = sum(carries),
+               tot_touch = tot_recept+ tot_carries,
+               fpts_pg = tot_fpts/n,
+               targ_pg = tot_targ/n,
+               recept_pg = tot_recept/n,
+               carries_pg = tot_carries/n,
+               airyards_pg = sum(receiving_air_yards)/n,
+               fpts_pt = fpts_pg/(recept_pg + carries_pg),
+               yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+               passyards_pg = sum(passing_yards)/n,
+               td_int_ratio = sum(passing_tds)/sum(interceptions)) %>%
+        slice(n = 1) %>%
+        filter(tot_touch >= 100 | tot_recept >=60) %>%
+        arrange(-airyards_pg) %>%
+        ungroup() %>%
+        slice(n = 1:36)
+
+        billboarder() %>%
+          bb_barchart(data = rank_airyards,
+                      mapping = bbaes(x = full_name, y = airyards_pg)) %>%
+          bb_title(text = "AIR YARDS PER GAME") %>%
+          bb_axis(y = list(label = list(text = "YARDS", position = "middle")))
+    }
+})
+
+output$airyardsRankGraph <- renderBillboarder({
+        airyardsRankData()
+      })
+```
+
+### Data table
+```{r}
+DTOutput("seasonDT")
+```
+
+```{r context="server"}
+output$playerSelector <- renderUI({
+  df <- season()
+   selectInput("playerSearch", "Choose name:",
+               as.list(df$full_name),
+               multiple= FALSE,
+               selectize = TRUE)
+})
+
+seasonData <- eventReactive(input$submitButton, {
+    df <- season()
+    if (input$positionDropdown != "All") {
+          df <- df[df$position == input$positionDropdown,]
+          }
+    #select position, team, full_name to join with summarized df
+        df2 <- df %>%
+          select(3, 4, 42, 43)
+        df2 <- unique(df2)
+        df <- df %>%
+            group_by(full_name) %>%
+            summarise(across(6:39, sum))
+        df <- left_join(df2, df, by = "full_name")
+        df <- df %>%
+          select(4, 1:3, 38, 37, 36, 5:35) %>%
+          arrange(-fpts_hppr)
+        
+    # datatabale
+      datatable(df, options = list(scrollX = TRUE, paging = TRUE, searching = TRUE))
+  })
+
+output$seasonDT <- renderDT({
+   seasonData()
+  })
+# observeEvent(input$submitButton, {
+#   season$df_data <- load_data(as.numeric(input$seasonDropdown))
+#              })
+```
