@@ -91,6 +91,20 @@ make_player_plot <- function(df) {
 
 }
 
+# make formattable table Player Profile info
+make_profile = function(df){
+
+  formattable(df, align = c("l", rep("r", NCOL(df) - 1)))
+  # list(`Name` = formatter("span", style = ~ style(color = "azure1",font.weight = "bold")),
+  #      `Team` = color_tile("cornsilk", "darkgoldenrod1"),
+  #      `Position` = color_tile("lightpink", "tomato"),
+  #      `Birth Date` = formatter("span", style = ~ style(color = "azure1",font.weight = "bold"))))
+
+  # Make an interactive Table! with a caption
+  # datatable(mydata, caption = paste('COVID-19 Statistics', myfips$state, myfips$date),
+  #           options = list(paging = FALSE, searching = FALSE))
+  # datatable(mydata, options = list(paging = FALSE, searching = FALSE))
+}
 # Deals with grouping of NULL data when start has no data
 if_is_empty <- function(i){
   is.null(need(i, message = FALSE)

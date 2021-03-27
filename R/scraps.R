@@ -2,34 +2,7 @@
 # ```{r}
 # # htmlOutput("profilePic")
 # ```
-
-####################  MAKE PLOTLY GAME LOG GRAPH ####################
-# plot_ly(df, x = ~week, y = ~rushing_yards,
-#         type = 'bar',
-#         textposition = 'auto',
-#         name = "RUSHING",
-#         marker = list(color = 'rgba(219, 64, 82, 0.7)',
-#                       line = list(color = 'rgba(219, 64, 82, 1.0)',
-#                                   width = 2))) %>%
-#   add_trace(df, x = ~week, y = ~receiving_yards, type = 'bar', name = "RECIEVING", marker = list(color = 'rgba(10, 150, 24, 0.7)',
-#                           line = list(color = 'rgba(55, 128, 191, 0.7)',
-#                                       width = 2)))%>%
-#   add_trace(df, x = ~week, y = ~passing_yards,
-#             type = 'bar',
-#             name = "PASSING",
-#             marker = list(color = 'rgba(55, 128, 191, 0.7)',
-#                           line = list(color = 'rgba(55, 128, 191, 0.7)',
-#                                       width = 2))) %>%
-#   add_trace(df, x = ~week, y = ~fpts_hppr,
-#             type = "scatter",
-#             mode = "lines",
-#             name = "FPTS",
-#             line = list(color = 'rgba(0, 0, 0, 1)',
-#                         width = 4)) %>%
-#   # add_segments(x = min(~week), xend = max(~week), y = ~rush_per_game, yend = ~rush_per_game) %>%
-#   layout(barmode = "stack")
-
-
+#
 # ```{r context = "server"}
 # # headshotPic <- eventReactive(input$submitButton, {
 # #   if(is.null(input$playerSearch)) {
@@ -170,41 +143,3 @@
 # # valueBoxOutput("fppgRankBox")
 # ```
 # #
-
-### FPTS/game value
-# ```{r}
-# valueBoxOutput("fppgBox")
-# ```
-# ```{r context="server"}
-# # FPTS/Game number during period
-# fppgValue <- eventReactive(input$submitButton, {
-#   if(is.null(input$playerSearch)) {
-#     NULL
-#   } else {
-#     df1 <- season()
-#     df2 <- player1()
-#     # find position rank --- total fpts during period
-#     ranks <- df1 %>%
-#       filter(position == df2$position[1]) %>%
-#       filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
-#       group_by(player_id) %>%
-#       add_count() %>%
-#       mutate(total_fpts = sum(fpts_hppr),
-#              total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
-#              fpts_pg = total_fpts/n) %>%
-#       slice(n = 1) %>%
-#       arrange(-fpts_pg) %>%
-#       ungroup() %>%
-#       mutate(rank = 1:n()) %>%
-#       filter(player_id == df2$player_id[1]) %>%
-#       select(fpts_pg) %>%
-#       round(2)
-#   }
-# })
-#
-# # Output position Rank value box to UI
-# output$fppgBox <- renderValueBox({
-#   valueBox(fppgValue(),
-#            caption = "FPTS/game")
-# })
-# ```

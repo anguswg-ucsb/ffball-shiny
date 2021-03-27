@@ -7,7 +7,7 @@
 
 
 
-# LOAD IN SEASON DATA
+################## LOAD IN SEASON DATA #####################
 season <- load_data(2020)
 # saveRDS(season, file = "data/nfl-season-2020")
 
@@ -517,8 +517,59 @@ highchart() %>%
   hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
 
 
+############## IMAGE & PLAYER PROFILE #############
+library(jpeg)
+library(png)
+library(EBImage)
+
+roster <- fast_scraper_roster(2020) %>%
+  filter(position %in% c("QB", "RB", "TE", "WR")) %>%
+  filter(full_name == rb1$full_name[1])
+
+info <- roster %>%
+  select(full_name, team, position, birth_date, height, weight, college)
+
+DT::datatable(info, class = "stripe")
+tib <- tibble::enframe(info2$values)
+tib2 <- tib[,2]
+datatable(tib2)
+info <- info %>% mutate(across(1:7, as.character))
+
+info2 <- info %>%
+  rename("Name" = "full_name", "Team" = 'team', "Position" = "position", "Birth Date" = "birth_date", "Height" = "height", "Weight" = "weight", "College" = "college")
+
+info2 <- info2 %>% pivot_longer(1:7, names_to = "Summary", values_to = "values")
+
+info2 <- info2 %>% rename(" " = "Summary", "  " = "values")
 
 
+make_profile = function(df){
+
+  formattable(df, align = c("l", rep("r", NCOL(df) - 1)))
+              # list(`Name` = formatter("span", style = ~ style(color = "azure1",font.weight = "bold")),
+              #      `Team` = color_tile("cornsilk", "darkgoldenrod1"),
+              #      `Position` = color_tile("lightpink", "tomato"),
+              #      `Birth Date` = formatter("span", style = ~ style(color = "azure1",font.weight = "bold"))))
+
+  # Make an interactive Table! with a caption
+  # datatable(mydata, caption = paste('COVID-19 Statistics', myfips$state, myfips$date),
+  #           options = list(paging = FALSE, searching = FALSE))
+  # datatable(mydata, options = list(paging = FALSE, searching = FALSE))
+}
+make_profile(info2)
+url <- list(roster[,24])
+
+
+img = readImage('https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/3917315.png')
+display(img, method = "raster")
+
+download.file('https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/3917315.png',  destfile="tmp.png", mode="wb")
+
+info <- roster %>%
+  select(full_name, team, position, birth_date, height, weight, college, gsis_id)
+
+
+# tags$img(src = "https://www.rstudio.com/wp-content/uploads/2014/03/blue-125.png")
 
 # PLAYER AIR YARDS + REC. YARDS
 ggplot(p2, aes(x = week, y = receiving_yards)) +

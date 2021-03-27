@@ -4,8 +4,8 @@ runtime: shiny
 output: 
   flexdashboard::flex_dashboard:
     navbar:
-      - { icon: "fa-question-circle", href: "https://water.noaa.gov/about/nwm", align: right }
-    theme: spacelab
+      - { icon: "fa-question-circle", href: "https://github.com/anguswg-ucsb/ffball-shiny", align: right }
+    theme: flatly
     orientation: rows
     source_code: embed
     vertical_layout: fill
@@ -21,24 +21,18 @@ library(shinycustomloader)
 library(nflfastR)
 library(gsisdecoder)
 
-
 library(dplyr)
 library(tidyr)
 library(BAMMtools)
 
 library(DT)
+library(formattable)
 library(highcharter)
 
-
 source('helper.R')
-
 ```
 
 ```{r context="server"}
- # season <<- reactive({
-     # season <- load_data(as.numeric(input$seasonDropdown))
- # })
-# season <- reactiveValues()
 season <<- reactive({
   dataset <- load_data(as.numeric(input$seasonDropdown))
 })
@@ -47,6 +41,14 @@ player1 <- reactive({
   df2 <- get_player_data(season(), input$playerSearch, input$weekRange[1], input$weekRange[2])
 })
 
+roster <- reactive({
+  info <- fast_scraper_roster(as.numeric(input$seasonDropdown)) %>%
+  filter(position %in% c("QB", "RB", "TE", "WR")) 
+})
+# url <- reactive({
+#   df <- roster()
+#   photo <- df[,24]
+# })
 ```
 
 Player stats {data-icon="fa-tint"}
@@ -57,11 +59,6 @@ Inputs {.sidebar}
 
 ### Filters
 ```{r}
-# dqshiny::autocomplete_input("auto", "Search for a County:",
-#                                 value = "",
-#                                 max_options = 5,
-#                                 options = list(season()$full_name))
-
 selectInput("seasonDropdown",
             label = "Season", 
             selected = 2020,
@@ -91,6 +88,8 @@ sliderInput("weekRange", "Week",
 # verbatimTextOutput("weekRangeText")
 # 
 # verbatimTextOutput("variableDropText")
+
+# verbatimTextOutput("headshotText")
 ```
 
 ```{r context = "server"}
@@ -98,7 +97,10 @@ sliderInput("weekRange", "Week",
 # seasonText <- eventReactive(input$submitButton, {
 #     paste0("Season: ", input$seasonDropdown)
 #   })
-# 
+# output$headshotText <- renderText({
+#    headshotData()
+#   })
+
 # output$seasonDropdownText <- renderText({
 #    seasonText()
 #   })
@@ -126,33 +128,6 @@ sliderInput("weekRange", "Week",
 # output$weekRangeText <- renderText({
 #    weekRangeText()
 #   })
-```
-
-```{r}
-# tags$div(id = "container2")
-# 
-# test_chart_script <- JS(
-#   "$(function() {
-#   Highcharts.chart('container2', {
-#     chart: {
-#       reflow: false
-#     },
-#     title: {
-#       text: 'Chart reflow is set to false'
-#     },
-#     subtitle: {
-#       text: 'When resizing the window or the frame, the chart should not resize'
-#     },
-#     xAxis: {
-#       categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-#     },
-#     series: [{
-#       data: [29.9, 71.5, 106.4, 129.2, 144.0, 176.0, 135.6, 148.5, 216.4, 194.1, 95.6, 54.4]
-#     }]
-#   });
-#   });"
-# )
-#     tags$script(test_chart_script)
 ```
 
 ### **Submit**
@@ -198,7 +173,7 @@ positionRank <- eventReactive(input$submitButton, {
 
 # Output position Rank value box to UI
 output$positionRankBox <- renderValueBox({
-  valueBox(positionRank(), color = 'success',
+  valueBox(positionRank(), icon = "fa-football-ball", color = 'danger',
            caption = " ")
 })
 ```
@@ -305,11 +280,33 @@ output$YardsGauge <- renderGauge({
 })
 ```
 
+### Headshot
+```{r}
+uiOutput("headshotPic")
+```
+
+```{r context = "server"}
+output$headshotPic <- renderUI({
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else if (!is.null(input$variableDropdown)) {
+    df2 <- headshotData()
+    pic <- df2
+    tags$img(src = pic, width = 150, height = 150)
+   }
+})
+```
+
 Row
 --------------------------------------------------
 ### Game log
 ```{r}
-  highchartOutput("gamelogGraph")
+highchartOutput("gamelogGraph")
+```
+
+### Player Profile
+```{r}
+formattableOutput('profileTable')
 ```
 
 ```{r context = "server"}
@@ -326,6 +323,62 @@ gamelogData <- eventReactive(input$submitButton, {
 output$gamelogGraph <- renderHighchart({
   gamelogData()
 })
+
+headshotData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else if (!is.null(input$variableDropdown)) {
+        df <- season()
+        df1 <- player1()
+        df2 <- roster()
+
+        df2 <- df2 %>% filter(full_name == df1$full_name[1])
+        url2 <- as.character(df2[1,24])
+        url2
+  }
+})
+
+# output$headshotPic <- renderUI({
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else if (!is.null(input$variableDropdown)) {
+#     df2 <- headshotData()
+#     pic <- df2
+#     tags$img(src = pic, width = 200, height = 100)
+#    }
+# })
+profileData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else if (!is.null(input$variableDropdown)) {
+        df <- season()
+        df1 <- player1()
+        df2 <- roster()
+
+        df2 <- df2 %>% filter(full_name == df1$full_name[1])
+        info <- df2 %>%
+            select(full_name, team, position, birth_date, height, weight, college)
+        info <- info %>% mutate(across(1:7, as.character))
+
+        info <- info %>%
+          rename("Name" = "full_name",
+                 "Team" = 'team',
+                 "Position" = "position",
+                 "Birth Date" = "birth_date",
+                 "Height" = "height",
+                 "Weight" = "weight",
+                 "College" = "college")
+  
+        info <- info %>% pivot_longer(1:7, names_to = "Summary", values_to = "values")
+        
+        info <- info %>% rename(" " = "Summary", "  " = "values")
+  }
+})
+
+output$profileTable <- renderFormattable({
+    df <- profileData()
+    make_profile(df)
+   })
 ```
 
 
