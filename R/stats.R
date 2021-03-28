@@ -7,10 +7,12 @@
 
 
 
-################## LOAD IN SEASON DATA #####################
+################## LOAD IN SEASON & ROSTER DATA #####################
 season <- load_data(2020)
 # saveRDS(season, file = "data/nfl-season-2020")
 
+rosters <- fast_scraper_roster(2020) %>%
+  filter(position %in% c("QB", "RB", "TE", "WR"))
 ################## GAME LOG YARDS + FANTASY POINTS #####################
 highchart() %>%
   hc_yAxis_multiples(list(title = list(text = "Yards"),
@@ -51,7 +53,7 @@ hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
 
 #################### PLAYERS #######################
 
-rb1 <- get_player_data(season, "Dalvin Cook", 1, 16)
+rb1 <- get_player_data(season, "Joe Mixon", 1, 16)
 
 wr1 <- get_player_data(season, "Terry McLaurin", 1, 16)
 
@@ -122,17 +124,17 @@ highchart() %>%
                           # max = max(wr1$target_share),
                           showLastLabel=FALSE,
                           opposite = TRUE)) %>%
-  hc_add_series(wr1, name = "Air yards", type = "column",
+  hc_add_series(qb1, name = "Air yards", type = "column",
                 hcaes(x = week, y = receiving_air_yards), yAxis = 0 ) %>%
-  hc_add_series(wr1, name = "Receiving yards", type = "column",
+  hc_add_series(qb1, name = "Receiving yards", type = "column",
                 hcaes(x = week, y = receiving_yards), yAxis = 0) %>%
   # hc_add_series(wr1, name = "Catch rate", type = "line",
   #               hcaes(x = week, y = catch_rate, yAxis = 1 )) %>%
-  hc_add_series(wr1, name = "Target share", type = "spline",
+  hc_add_series(qb1, name = "Target share", type = "spline",
                 hcaes(x = week, y = target_share), yAxis = 1) %>%
   hc_colors(c("darkcyan", "lightblue", "darkred")) %>%
   # hc_yAxis(min = 0) %>%
-  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
+  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
 
 
 ################# TARGETS/RECEPTIONS #####################
@@ -330,15 +332,109 @@ highchart() %>%
 
 ################### PLAYER AIR YARDS + RECIEVE YARDS ####################
 wr1 <- get_player_data(season, "A.J. Brown", 1, 16)
-air_yards <- wr1 %>%
-  pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
 
-billboarder::billboarder() %>%
-  bb_barchart(data = air_yards,
-              mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
+################### PASS AIR YARDS ####################
+p1 <- season %>%
+  # filter(week >= start, week <= end) %>%
+  group_by(recent_team, week) %>%
+  mutate(team_targets = sum(targets), target_share = targets/team_targets) %>%
+  ungroup() %>%
+  filter(full_name == qb1$full_name) %>%
+  select(1, 43, 42, 2:39, 44, 45) %>%
+  filter(week >= 1, week <= 16) %>%
+  add_count() %>%
+  mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
+         recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
+         pass_yards_pg = (sum(passing_yards)/nrow(.)),
+         tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         tot_carries = sum(carries),
+         tot_touch = tot_recept+ tot_carries,
+         fpts_pg = (sum(fpts_hppr)/n),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         targ_pg = tot_targ/n,
+         recept_pg = tot_recept/n,
+         avg_dot = receiving_air_yards/targets,
+         carries_pg = tot_carries/n,
+         airyards_pg = sum(receiving_air_yards)/n,
+         fpts_pt = fpts_hppr/(receptions + carries),
+         yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+         passyards_pg = sum(passing_yards)/n,
+         td_int_ratio = sum(passing_tds)/sum(interceptions),
+         td_int_ratio2 = passing_tds/interceptions,
+         ypc = rushing_yards/carries,
+         yards_per_touch = (rushing_yards + receiving_yards)/(carries + receptions),
+         catch_rate = receptions/targets,
+         compl_percent = sum(completions)/sum(attempts),
+         compl_percent2 = completions/attempts)
 
+highchart() %>%
+  hc_yAxis_multiples(list(title = list(text = "Yards"),
+                          # min=0,
+                          # max = max(p3$receiving_air_yards),
+                          showFirstLabel = TRUE,
+                          showLastLabel = TRUE,
+                          opposite = FALSE),
+                     list(title = list(text = "Completion %"),
+                          # min=0,
+                          # max = 5,
+                          # max = max(wr1$target_share),
+                          showLastLabel=FALSE,
+                          opposite = TRUE)) %>%
+  hc_add_series(p1, name = "Passing air yards", type = "column",
+                  hcaes(x = week, y = passing_air_yards), yAxis = 0) %>%
+  hc_add_series(p1, name = "Passing yards after catch", type = "column",
+                hcaes(x = week, y = passing_yards_after_catch), yAxis = 0) %>%
+  # hc_add_series(p1, name = "TD/INT", type = "line",
+  #                 hcaes(x = week, y = td_int_ratio), yAxis = 0) %>%
+    hc_add_series(p1, name = "Completion %", type = "line",
+                  hcaes(x = week, y = compl_percent2), yAxis = 1) %>%
+  hc_colors(c("darkcyan", "lightblue", "darkred"))
 
 ####################### LEAGUE RANKINGS ##########################
+######################
+
+####################### TOTAL TOUCHES RANK ##########################
+rank_touches <- season %>%
+  # filter(position == df2$position[1]) %>%
+  filter(position == wr1$position[1]) %>%
+  # filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+  filter(week >= 1, week <= 16) %>%
+  group_by(player_id) %>%
+  add_count() %>%
+  mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
+         recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
+         pass_yards_pg = (sum(passing_yards)/nrow(.)),
+         tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         tot_carries = sum(carries),
+         tot_touch = tot_recept+ tot_carries,
+         touches_pg = tot_touch/n) %>%
+  ungroup() %>%
+  # filter(touches_pg >= 4) %>%
+  group_by(player_id) %>%
+  slice(n = 1) %>%
+  ungroup() %>%
+  arrange(-touches_pg) %>%
+  head(75)
+
+ tmp1 <- rb1 %>% mutate(across(where(is.numeric), round, 2))
+highchart() %>%
+  hc_add_theme(hc_theme_smpl()) %>%
+  # hc_add_series(rank_touches, name = "Touches", type = "column",
+  #               hcaes(x = full_name, y = tot_touch), yAxis = 0 ) %>%
+  hc_add_series(rank_touches, name = "Touches per game", type = "column",
+                hcaes(x = full_name, y = touches_pg)) %>%
+  hc_colors(c("darkcyan", "darkred")) %>%
+  hc_xAxis(categories = rank_touches$player_name) %>%
+  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
+
 ####################### YPC RANK ##########################
 
 rank_touch <- season %>%

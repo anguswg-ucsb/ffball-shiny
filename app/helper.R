@@ -75,7 +75,12 @@ get_player_data <- function (df_season, name, start, end) {
            td_int_ratio = sum(passing_tds)/sum(interceptions),
            ypc = rushing_yards/carries,
            yards_per_touch = (rushing_yards + receiving_yards)/(carries + receptions),
-           catch_rate = receptions/targets)
+           catch_rate = receptions/targets,
+           compl_percent = sum(completions)/sum(attempts),
+           compl_percent2 = completions/attempts)
+
+  p1 <- p1 %>%
+    mutate(across(where(is.numeric), round, 2))
 }
 
 # plot player_data() data
