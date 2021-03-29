@@ -72,7 +72,7 @@ uiOutput("playerSelector")
 
 selectInput("variableDropdown",
             label = "Variable", 
-            choices = c(NULL, "Air yards","Yards after catch", "Touches", "Targets/Receptions", "Yards per touch", "Completion %"))
+            choices = c(NULL, "Air yards","Yards after catch", "Touches", "Targets/Receptions", "Yards per touch", "Passing"))
 
 # Input: Specification of range within an interval ----
 sliderInput("weekRange", "Week",
@@ -509,7 +509,7 @@ playerVarData <- eventReactive(input$submitButton, {
               # hc_yAxis(min = 0) %>%
               hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL) 
         
-   }  else if (input$variableDropdown == "Completion %") {
+   }  else if (input$variableDropdown == "Passing") {
           df <- season()
           df1 <- player1()
         
@@ -694,21 +694,23 @@ leagueRankData <- eventReactive(input$submitButton, {
                  td_int_ratio = sum(passing_tds)/sum(interceptions),
                  ypc = sum(rushing_yards)/tot_carries,
                  yards_per_touch = (sum(rushing_yards) + sum(receiving_yards))/tot_touch,
-                 fpts_per_touch = tot_fpts/(tot_recept + tot_carries)) %>%
+                 fpts_per_touch = tot_fpts/(tot_recept + tot_carries),
+                 touches_pg = carries_pg + recept_pg) %>%
           ungroup() %>%
-          filter(carries_pg >= 6.25) %>%
+          filter(carries_pg >= 6.25 | recept_pg >= 4 | touches_pg >= 6) %>%
           group_by(player_id) %>%
           slice(n = 1) %>%
           ungroup() %>%
            mutate(avg_ypc = mean(ypc), avg_ypt = mean(yards_per_touch)) %>%
           arrange(-yards_per_touch) %>%
-          slice(n = 1:24)
+          slice(n = 1:36)
       rank_ypc <- rank_ypc %>%
            mutate(across(where(is.numeric), round, 2))
+      
       highchart() %>% 
           hc_add_theme(hc_theme_smpl()) %>%
           hc_add_series(rank_ypc, name = "Yards per touch", type = "column",
-                        hcaes(x = full_name, y = yards_per_touch), yAxis = 0 ) %>%
+                        hcaes(x = full_name, y = yards_per_touch)) %>%
           hc_add_series(rank_ypc, name = "League average", type = "spline",
                         hcaes(x = full_name, y = avg_ypt)) %>%
           hc_colors(c("darkcyan", "darkred")) %>% 
@@ -787,7 +789,7 @@ leagueRankData <- eventReactive(input$submitButton, {
               slice(n = 1) %>%
               arrange(-tot_yards_after_catch) %>%
               ungroup() %>%
-              slice(n = 1:24)
+              slice(n = 1:36)
 
           rank_after_catch$yards_after_catch_pg <- round(rank_after_catch$yards_after_catch_pg, 2)
           
@@ -802,7 +804,7 @@ leagueRankData <- eventReactive(input$submitButton, {
           hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
           
         
-  }  else if (input$variableDropdown == "Completion %") {
+  }  else if (input$variableDropdown == "Passing") {
             df1 <- season()
             df2 <- player1()
         rank_pass <- df1 %>%
