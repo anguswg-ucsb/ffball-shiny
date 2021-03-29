@@ -503,7 +503,7 @@ playerVarData <- eventReactive(input$submitButton, {
                             hcaes(x = week, y = yards_per_touch, yAxis = 0)) %>%
               hc_add_series(df1, name = "Yards per carry", type = "column",
                           hcaes(x = week, y = ypc), yAxis = 0) %>%
-              hc_add_series(df1, name = "Fantasy points per touch", type = "spline",
+              hc_add_series(df1, name = "Fantasy points per touch", type = "line",
                             hcaes(x = week, y = fpts_pt), yAxis = 1) %>%
               hc_colors(c("darkcyan", "lightblue", "darkred")) %>% 
               # hc_yAxis(min = 0) %>%
@@ -711,7 +711,7 @@ leagueRankData <- eventReactive(input$submitButton, {
           hc_add_theme(hc_theme_smpl()) %>%
           hc_add_series(rank_ypc, name = "Yards per touch", type = "column",
                         hcaes(x = full_name, y = yards_per_touch)) %>%
-          hc_add_series(rank_ypc, name = "League average", type = "spline",
+          hc_add_series(rank_ypc, name = "League average", type = "line",
                         hcaes(x = full_name, y = avg_ypt)) %>%
           hc_colors(c("darkcyan", "darkred")) %>% 
           hc_xAxis(categories = rank_ypc$player_name) %>% 

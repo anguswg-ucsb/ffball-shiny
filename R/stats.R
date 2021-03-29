@@ -168,25 +168,27 @@ highchart() %>%
       hc_colors(c("darkcyan", "lightblue", "darkseagreen", "darkred"))
 
   highchart() %>%
-    hc_yAxis_multiples(list(title = list(text = "Yards"),
-                            # min=0,
-                            # max = max(p3$receiving_air_yards),
-                            showFirstLabel = TRUE,
-                            showLastLabel = TRUE,
-                            opposite = FALSE),
-                       list(title = list(text = "Fantasy points"),
-                            min=0,
-                            max = 50,
-                            # max = max(wr1$target_share),
-                            showLastLabel=FALSE,
-                            opposite = TRUE)) %>%
-    # hc_plotOptions(column = list(stacking = "normal")) %>%
-    hc_add_series(qb1, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards)) %>%
-    hc_add_series(qb1, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards)) %>%
-    hc_add_series(qb1, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards)) %>%
-    hc_add_series(qb1, name = "Fantasy points",type = "spline", hcaes(x = week, y = fpts_hppr, yaxis = 1)) %>%
-    hc_colors(c("darkcyan", "lightblue", "#1aadce", "darkred"))
-    hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL) %>%
+    hc_add_theme(hc_theme_smpl()) %>%
+    # hc_yAxis_multiples(list(title = list(text = "Yards"),
+    #                         # min=0,
+    #                         # max = max(p3$receiving_air_yards),
+    #                         showFirstLabel = TRUE,
+    #                         showLastLabel = TRUE,
+    #                         opposite = FALSE),
+    #                    list(title = list(text = "Fantasy points"),
+    #                         min=0,
+    #                         max = 50,
+    #                         # max = max(wr1$target_share),
+    #                         showLastLabel=FALSE,
+    #                         opposite = TRUE)) %>%
+    hc_plotOptions(column = list(stacking = "normal")) %>%
+    hc_yAxis(min = 0) %>%
+    hc_add_series(rb1, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards)) %>%
+    hc_add_series(rb1, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards)) %>%
+    hc_add_series(rb1, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards)) %>%
+    hc_add_series(rb1, name = "Fantasy points",type = "line", hcaes(x = week, y = fpts_hppr, yaxis = 0)) %>%
+    hc_colors(c("darkcyan", "lightblue", "#1aadce", "darkred")) %>%
+    hc_chart(plotBorderWidth = 0.5, plotBorderColor = '#b4b4b4', height = NULL)
 
     hc_yAxis_multiples(list(title = list(text = "Yards"),
                             # min=0,
