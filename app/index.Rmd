@@ -138,7 +138,7 @@ actionButton("submitButton", label = "Enter", icon("search"))
 Row
 ----------------------------------------
 ### FPTS/game
-```{r, fig.width = 400}
+```{r, fig.width = 385}
 gaugeOutput("fppgGauge")
 ```
 
@@ -187,7 +187,7 @@ output$fppgGauge <- renderGauge({
 ```
 
 ### Yards/game
-```{r, fig.width = 400}
+```{r, fig.width = 385}
 gaugeOutput("YardsGauge")
 ```
 
@@ -240,7 +240,7 @@ output$YardsGauge <- renderGauge({
 ```
 
 ### Position rank
-```{r, fig.width = 200}
+```{r, fig.width = 230}
 valueBoxOutput("positionRankBox")
 ```
 
@@ -282,12 +282,12 @@ output$positionRankBox <- renderValueBox({
 Row
 --------------------------------------------------
 ### Game log
-```{r, fig.width = 800}
+```{r, fig.width = 770}
 highchartOutput("gamelogGraph")
 ```
 
 ### Player Profile
-```{r, fig.width = 200}
+```{r, fig.width = 230}
 formattableOutput('profileTable')
 ```
 
