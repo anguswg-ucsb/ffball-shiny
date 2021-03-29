@@ -137,49 +137,8 @@ actionButton("submitButton", label = "Enter", icon("search"))
 
 Row
 ----------------------------------------
-### Position rank
-```{r}
-valueBoxOutput("positionRankBox")
-```
-
-```{r context="server"}
-# Total FPTS positional rank during period
-positionRank <- eventReactive(input$submitButton, {
-  if(is.null(input$playerSearch)) {
-      NULL
-  } else {
-        df1 <- season()
-        df2 <- player1()
-      # find position rank --- total fpts during period
-        ranks <- df1 %>%
-          filter(position == df2$position[1]) %>%
-          filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
-          group_by(player_id) %>%
-          add_count() %>%
-          mutate(total_fpts = sum(fpts_hppr),
-                 total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
-                 fpts_pg = total_fpts/n) %>%
-          slice(n = 1) %>%
-          arrange(-total_fpts) %>%
-          ungroup() %>%
-          mutate(rank = 1:n()) %>% 
-          filter(player_id == df2$player_id[1]) %>%
-          select(rank)
-        
-          paste0("# ", ranks[1])
-          # select(1:5, 39:47, 6:38)
-  }
-})
-
-# Output position Rank value box to UI
-output$positionRankBox <- renderValueBox({
-  valueBox(positionRank(), icon = "fa-football-ball", color = 'danger',
-           caption = " ")
-})
-```
-
 ### FPTS/game
-```{r}
+```{r, fig.width = 400}
 gaugeOutput("fppgGauge")
 ```
 
@@ -228,7 +187,7 @@ output$fppgGauge <- renderGauge({
 ```
 
 ### Yards/game
-```{r}
+```{r, fig.width = 400}
 gaugeOutput("YardsGauge")
 ```
 
@@ -280,48 +239,55 @@ output$YardsGauge <- renderGauge({
 })
 ```
 
-### Headshot
-```{r}
-uiOutput("headshotPic")
+### Position rank
+```{r, fig.width = 200}
+valueBoxOutput("positionRankBox")
 ```
 
-```{r context = "server"}
-headshotData <- eventReactive(input$submitButton, {
+```{r context="server"}
+# Total FPTS positional rank during period
+positionRank <- eventReactive(input$submitButton, {
   if(is.null(input$playerSearch)) {
-    NULL
-  } else if (!is.null(input$variableDropdown)) {
-        df <- season()
-        df1 <- player1()
-        df2 <- roster()
-
-        df2 <- df2 %>% 
-          select(full_name, headshot_url) %>% 
-          filter(full_name == df1$full_name[1])
-        url <- as.character(df2[1,2])
-        url
+      NULL
+  } else {
+        df1 <- season()
+        df2 <- player1()
+      # find position rank --- total fpts during period
+        ranks <- df1 %>%
+          filter(position == df2$position[1]) %>%
+          filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
+          group_by(player_id) %>%
+          add_count() %>%
+          mutate(total_fpts = sum(fpts_hppr),
+                 total_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds),
+                 fpts_pg = total_fpts/n) %>%
+          slice(n = 1) %>%
+          arrange(-total_fpts) %>%
+          ungroup() %>%
+          mutate(rank = 1:n()) %>% 
+          filter(player_id == df2$player_id[1]) %>%
+          select(rank)
+        
+          paste0("# ", ranks[1])
+          # select(1:5, 39:47, 6:38)
   }
 })
 
-output$headshotPic <- renderUI({
-  if(is.null(input$playerSearch)) {
-    NULL
-  } else if (!is.null(input$variableDropdown)) {
-    df2 <- headshotData()
-    pic <- df2
-    tags$img(src = pic, width = 150, height = 150)
-   }
+# Output position Rank value box to UI
+output$positionRankBox <- renderValueBox({
+  valueBox(positionRank(), icon = "fa-football-ball", color = 'danger',
+           caption = " ")
 })
 ```
-
 Row
 --------------------------------------------------
 ### Game log
-```{r, fig.width = 750}
+```{r, fig.width = 800}
 highchartOutput("gamelogGraph")
 ```
 
 ### Player Profile
-```{r, fig.width = 250}
+```{r, fig.width = 200}
 formattableOutput('profileTable')
 ```
 
@@ -350,21 +316,25 @@ profileData <- eventReactive(input$submitButton, {
 
         df2 <- df2 %>% filter(full_name == df1$full_name[1])
         info <- df2 %>%
-            select(full_name, team, position, birth_date, height, weight, college)
-        info <- info %>% mutate(across(1:7, as.character))
+              select(full_name, team, position, birth_date, height, weight, college, headshot_url)
+    
+    
+    info <- info %>%
+      mutate(across(1:7, as.character)) %>% 
+      mutate(Photo = paste0("<img src=", dQuote(headshot_url), " height = \"52\"></img>")) %>% 
+      select(Photo, full_name, team, position, birth_date, height, weight, college)
 
-        info <- info %>%
-          rename("Name" = "full_name",
-                 "Team" = 'team',
-                 "Position" = "position",
-                 "Birth Date" = "birth_date",
-                 "Height" = "height",
-                 "Weight" = "weight",
-                 "College" = "college")
-  
-        info <- info %>% pivot_longer(1:7, names_to = "Summary", values_to = "values")
-        
-        info <- info %>% rename(" " = "Summary", "  " = "values")
+    info <- info %>%
+      rename("Name" = "full_name",
+             "Team" = 'team',
+             "Position" = "position",
+             "Birth Date" = "birth_date",
+             "Height" = "height",
+             "Weight" = "weight",
+             "College" = "college")
+
+    info <- info %>% pivot_longer(1:8, names_to = "____", values_to = " ")
+
   }
 })
 
@@ -434,7 +404,7 @@ playerVarData <- eventReactive(input$submitButton, {
                                         opposite = FALSE),
                                    list(title = list(text = "Fantasy points per touch"),
                                         min=0,
-                                        max = 5,
+                                        max = 6,
                                         # max = max(wr1$target_share),
                                         showLastLabel=FALSE,
                                         opposite = TRUE)) %>%
@@ -623,8 +593,9 @@ leagueRankData <- eventReactive(input$submitButton, {
            mutate(across(where(is.numeric), round, 2))
         highchart() %>%
             hc_add_theme(hc_theme_smpl()) %>%
-          hc_add_series(rank_airyards, type = "column", hcaes(x = full_name, y = airyards_pg)) %>%
+          hc_add_series(rank_airyards, name = "Airyards per game",  type = "column", hcaes(x = full_name, y = airyards_pg)) %>%
           hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL) %>%
+          hc_colors(c("darkcyan")) %>%
           hc_xAxis(categories = rank_airyards$player_name) 
           
          
@@ -888,7 +859,7 @@ leagueRankData <- eventReactive(input$submitButton, {
                         hcaes(x = full_name, y = yards_per_attempt ), yAxis = 1 ) %>%
           # hc_add_series(rank_pass, name = "YAC per game", type = "column",
           #               hcaes(x = full_name, y = yards_after_catch_pg), yAxis = 0 ) %>%
-          hc_colors(c("darkcyan", "darkred")) %>%
+          hc_colors(c("darkcyan", "lightblue")) %>%
           hc_xAxis(categories = rank_pass$player_name) %>%
           hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
           

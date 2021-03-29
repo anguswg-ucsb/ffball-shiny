@@ -30,7 +30,38 @@
 #
 #
 #
+#### Headshot
+# ```{r}
+# uiOutput("headshotPic")
+# ```
 #
+# ```{r context = "server"}
+# headshotData <- eventReactive(input$submitButton, {
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else if (!is.null(input$variableDropdown)) {
+#     df <- season()
+#     df1 <- player1()
+#     df2 <- roster()
+#
+#     df2 <- df2 %>%
+#       select(full_name, headshot_url) %>%
+#       filter(full_name == df1$full_name[1])
+#     url <- as.character(df2[1,2])
+#     url
+#   }
+# })
+#
+# output$headshotPic <- renderUI({
+#   if(is.null(input$playerSearch)) {
+#     NULL
+#   } else if (!is.null(input$variableDropdown)) {
+#     df2 <- headshotData()
+#     pic <- df2
+#     tags$img(src = pic, width = 150, height = 150)
+#   }
+# })
+# ```
 #
 #
 #

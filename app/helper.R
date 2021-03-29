@@ -86,20 +86,45 @@ get_player_data <- function (df_season, name, start, end) {
 # plot player_data() data
 make_player_plot <- function(df) {
   # Fantasy points + RUSH YARDS + PASS + REC  in game in weeks
-  hchart(df, name = "Rushing yards", type = "column", yaxis = 1, hcaes(x = week, y = rushing_yards)) %>%
+  highchart() %>%
     hc_add_theme(hc_theme_smpl()) %>%
-    hc_add_series(df, name = "Receiving yards", type = "column", yaxis = 1, hcaes(x = week, y = receiving_yards)) %>%
-    hc_add_series(df, name = "Passing yards",type = "column",  yaxis = 1, hcaes(x = week, y = passing_yards)) %>%
-    hc_add_series(df, name = "Fantasy points",type = "spline",  yaxis = 2, hcaes(x = week, y = fpts_hppr)) %>%
-    hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL) %>%
-    hc_colors(c("darkcyan", "lightblue", "darkseagreen", "darkred"))
+      hc_plotOptions(column = list(stacking = "normal")) %>%
+      hc_yAxis(min = 0) %>%
+      hc_add_series(df, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards)) %>%
+      hc_add_series(df, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards)) %>%
+      hc_add_series(df, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards)) %>%
+      hc_add_series(df, name = "Fantasy points",type = "line", hcaes(x = week, y = fpts_hppr, yaxis = 0)) %>%
+      hc_colors(c("darkcyan", "lightblue", "#1aadce", "darkred")) %>%
+      hc_chart(plotBorderWidth = 0.5, plotBorderColor = '#b4b4b4', height = NULL)
+  # highchart() %>%
+  #   hc_add_theme(hc_theme_smpl()) %>%
+  #   hc_yAxis_multiples(list(title = list(text = "Yards"),
+  #                           showFirstLabel = TRUE,
+  #                           showLastLabel = TRUE,
+  #                           opposite = FALSE),
+  #                      list(title = list(text = "Fantasy points"),
+  #                           min=0,
+  #                           max = 50,
+  #                           showLastLabel=FALSE,
+  #                           opposite = TRUE)) %>%
+  #   # hc_plotOptions(column = list(stacking = "normal")) %>%
+  #   hc_add_series(df, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards)) %>%
+  #   hc_add_series(df, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards)) %>%
+  #   hc_add_series(df, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards)) %>%
+  #   hc_add_series(df, name = "Fantasy points",type = "spline", hcaes(x = week, y = fpts_hppr, yaxis = 1)) %>%
+  #   hc_colors(c("darkcyan", "lightblue", "#1aadce", "darkred")) %>%
+  #   hc_chart(plotBorderWidth = 0.5, plotBorderColor = '#b4b4b4', height = NULL)
 
 }
 
 # make formattable table Player Profile info
 make_profile = function(df){
 
-  formattable(df, align = c("l", rep("r", NCOL(df) - 1)))
+  formattable(df, align =c("l","l"),
+              # list( `____`= color_bar(customGreen)))
+              list(`____` = formatter(
+                "span", style = ~ style(color = "black", font.weight = "bold"))))
+
   # list(`Name` = formatter("span", style = ~ style(color = "azure1",font.weight = "bold")),
   #      `Team` = color_tile("cornsilk", "darkgoldenrod1"),
   #      `Position` = color_tile("lightpink", "tomato"),
@@ -110,6 +135,7 @@ make_profile = function(df){
   #           options = list(paging = FALSE, searching = FALSE))
   # datatable(mydata, options = list(paging = FALSE, searching = FALSE))
 }
+
 # Deals with grouping of NULL data when start has no data
 if_is_empty <- function(i){
   is.null(need(i, message = FALSE)

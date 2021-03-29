@@ -7,12 +7,10 @@
 
 
 
-################## LOAD IN SEASON & ROSTER DATA #####################
+# LOAD IN SEASON DATA
 season <- load_data(2020)
 # saveRDS(season, file = "data/nfl-season-2020")
 
-rosters <- fast_scraper_roster(2020) %>%
-  filter(position %in% c("QB", "RB", "TE", "WR"))
 ################## GAME LOG YARDS + FANTASY POINTS #####################
 highchart() %>%
   hc_yAxis_multiples(list(title = list(text = "Yards"),
@@ -53,62 +51,13 @@ hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
 
 #################### PLAYERS #######################
 
-rb1 <- get_player_data(season, "Joe Mixon", 1, 16)
+rb1 <- get_player_data(season, "Dalvin Cook", 1, 16)
 
 wr1 <- get_player_data(season, "Terry McLaurin", 1, 16)
 
 qb1 <- get_player_data(season, "Josh Allen", 1, 16)
 
 
-################ Fantasy points + RUSH YARDS + PASS + REC  in game in weeks ###############
-hchart(rb1, name = "Rushing yards", type = "column", yaxis = 1, hcaes(x = week, y = rushing_yards)) %>%
-  # hc_yAxis_multiples(list(title = list(text = "Yards"),
-  #                         min = 0,
-  #                         showFirstLabel = TRUE,
-  #                         showLastLabel = TRUE,
-  #                         opposite = FALSE),
-  #                    list(title = list(text = "Fantasy points"),
-  #                         min = 0,
-  #                         max = max(rb1$fpts_hppr),
-  #                         showLastLabel=TRUE,
-  #                         opposite = TRUE)) %>%
-  hc_add_series(rb1, name = "Receiving yards", type = "column", yaxis = 1, hcaes(x = week, y = receiving_yards)) %>%
-  hc_add_series(rb1, name = "Passing yards",type = "column",  yaxis = 1, hcaes(x = week, y = passing_yards)) %>%
-  hc_add_series(rb1, name = "Fantasy points",type = "spline",  yaxis = 2, hcaes(x = week, y = fpts_hppr)) %>%
-  hc_colors(c("darkcyan", "lightblue", "lightgreen", "darkred"))
-
-
-
-  hc_yAxis_multiples(list(title = list(text = "Yards"),
-                          showFirstLabel = TRUE,
-                          showLastLabel = TRUE,
-                          opposite = FALSE),
-                     list(title = list(text = "Fantasy points"),
-                          min=0,
-                          max = 1,
-                          showLastLabel=TRUE,
-                          opposite = TRUE)) %>%
-
-  hc_add_series(rb1, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards)) %>%
-  # hc_plotOptions(column = list(stacking = "normal")) %>%
-  # hc_add_series(df, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards, stack = "rushing_yards")) %>%
-  hc_add_series(rb1, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards)) %>%
-  hc_add_series(rb1, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards)) %>%
-  hc_add_series(rb1, name = "Fantasy points",type = "spline", yaxis = 1, hcaes(x = week, y = fpts_hppr))
-  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%') %>%
-  hc_colors(c("darkcyan", "lightblue", "lightgreen", "darkred"))
-
-  highchart() %>%
-  hc_yAxis_multiples(naxis = 2, heights = c(2, 1)) %>%
-  hc_add_series(rb1, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards)) %>%
-    # hc_plotOptions(column = list(stacking = "normal")) %>%
-    # hc_add_series(df, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards, stack = "rushing_yards")) %>%
-    hc_add_series(rb1, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards)) %>%
-    hc_add_series(rb1, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards)) %>%
-    hc_add_series(rb1, name = "Fantasy points",type = "spline", yaxis = 1, hcaes(x = week, y = fpts_hppr)) %>%
-    hc_add_yAxis(title = list(text = "Prices"), relative = 1)
-  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%') %>%
-    hc_colors(c("darkcyan", "lightblue", "lightgreen", "darkred"))
 
 ##################### AIRYARDS #####################
 highchart() %>%
@@ -124,24 +73,24 @@ highchart() %>%
                           # max = max(wr1$target_share),
                           showLastLabel=FALSE,
                           opposite = TRUE)) %>%
-  hc_add_series(qb1, name = "Air yards", type = "column",
+  hc_add_series(wr1, name = "Air yards", type = "column",
                 hcaes(x = week, y = receiving_air_yards), yAxis = 0 ) %>%
-  hc_add_series(qb1, name = "Receiving yards", type = "column",
+  hc_add_series(wr1, name = "Receiving yards", type = "column",
                 hcaes(x = week, y = receiving_yards), yAxis = 0) %>%
   # hc_add_series(wr1, name = "Catch rate", type = "line",
   #               hcaes(x = week, y = catch_rate, yAxis = 1 )) %>%
-  hc_add_series(qb1, name = "Target share", type = "spline",
+  hc_add_series(wr1, name = "Target share", type = "spline",
                 hcaes(x = week, y = target_share), yAxis = 1) %>%
-  hc_colors(c("darkcyan", "lightblue", "darkred")) %>%
+  hc_colors(c("darkcyan", "lightblue", "darkred"))
   # hc_yAxis(min = 0) %>%
-  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
+  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
 
 
 ################# TARGETS/RECEPTIONS #####################
 highchart() %>%
   hc_yAxis_multiples(list(title = list(text = "Targets/Receptions"),
-                          min=0,
-                          max = max(wr1$targets),
+                          # min=0,
+                          # max = max(p3$receiving_air_yards),
                           showFirstLabel = TRUE,
                           showLastLabel = TRUE,
                           opposite = FALSE),
@@ -162,9 +111,9 @@ hc_add_series(wr1, name = "Receptions", type = "column",
 
 ################# YARDS AFTER CATCH #####################
 highchart() %>%
-  hc_yAxis_multiples(list(title = list(text = "Yards"),
-                          min=0,
-                          max = max(wr1$receiving_air_yards),
+  hc_yAxis_multiples(list(title = list(text = "Targets/Receptions"),
+                          # min=0,
+                          # max = max(p3$receiving_air_yards),
                           showFirstLabel = TRUE,
                           showLastLabel = TRUE,
                           opposite = FALSE),
@@ -180,8 +129,8 @@ highchart() %>%
                 hcaes(x = week, y = receiving_yards_after_catch), yAxis = 0) %>%
   hc_add_series(wr1, name = "Target share", type = "spline",
                 hcaes(x = week, y = target_share), yAxis = 1) %>%
-  hc_colors(c("darkcyan", "lightblue", "darkred")) %>%
-  # hc_yAxis(min = list(ymin = 0)) %>%
+  hc_colors(c("darkcyan", "lightblue", "darkred"))
+  # hc_yAxis(min = 0) %>%
   hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
 
 
@@ -210,6 +159,14 @@ highchart() %>%
     hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
 
 ################## GAME LOG YARDS + FANTASY POINTS ###################
+    hchart(df, name = "Rushing yards", type = "column", yaxis = 1, hcaes(x = week, y = rushing_yards)) %>%
+      hc_add_theme(hc_theme_smpl()) %>%
+      hc_add_series(df, name = "Receiving yards", type = "column", yaxis = 1, hcaes(x = week, y = receiving_yards)) %>%
+      hc_add_series(df, name = "Passing yards",type = "column",  yaxis = 1, hcaes(x = week, y = passing_yards)) %>%
+      hc_add_series(df, name = "Fantasy points",type = "spline",  yaxis = 2, hcaes(x = week, y = fpts_hppr)) %>%
+      hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL) %>%
+      hc_colors(c("darkcyan", "lightblue", "darkseagreen", "darkred"))
+
   highchart() %>%
     hc_yAxis_multiples(list(title = list(text = "Yards"),
                             # min=0,
@@ -223,11 +180,14 @@ highchart() %>%
                             # max = max(wr1$target_share),
                             showLastLabel=FALSE,
                             opposite = TRUE)) %>%
-    hc_plotOptions(column = list(stacking = "normal")) %>%
-    hc_add_series(rb1, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards, stack = "rushing_yards")) %>%
-    hc_add_series(rb1, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards, stack = "rushing_yards")) %>%
-    hc_add_series(rb1, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards, stack = "rushing_yards")) %>%
-    hc_add_series(rb1, name = "Fantasy points",type = "spline", yaxis = 1, hcaes(x = week, y = fpts_hppr))
+    # hc_plotOptions(column = list(stacking = "normal")) %>%
+    hc_add_series(qb1, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards)) %>%
+    hc_add_series(qb1, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards)) %>%
+    hc_add_series(qb1, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards)) %>%
+    hc_add_series(qb1, name = "Fantasy points",type = "spline", hcaes(x = week, y = fpts_hppr, yaxis = 1)) %>%
+    hc_colors(c("darkcyan", "lightblue", "#1aadce", "darkred"))
+    hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL) %>%
+
     hc_yAxis_multiples(list(title = list(text = "Yards"),
                             # min=0,
                             # max = max(p3$receiving_air_yards),
@@ -332,109 +292,15 @@ highchart() %>%
 
 ################### PLAYER AIR YARDS + RECIEVE YARDS ####################
 wr1 <- get_player_data(season, "A.J. Brown", 1, 16)
+air_yards <- wr1 %>%
+  pivot_longer(c(33:34, 52), names_to = "air_yards_str", values_to = "air_yards_val")
 
-################### PASS AIR YARDS ####################
-p1 <- season %>%
-  # filter(week >= start, week <= end) %>%
-  group_by(recent_team, week) %>%
-  mutate(team_targets = sum(targets), target_share = targets/team_targets) %>%
-  ungroup() %>%
-  filter(full_name == qb1$full_name) %>%
-  select(1, 43, 42, 2:39, 44, 45) %>%
-  filter(week >= 1, week <= 16) %>%
-  add_count() %>%
-  mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
-         recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
-         pass_yards_pg = (sum(passing_yards)/nrow(.)),
-         tot_fpts = sum(fpts_hppr),
-         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
-         tot_recept = sum(receptions),
-         tot_targ = sum(targets),
-         tot_carries = sum(carries),
-         tot_touch = tot_recept+ tot_carries,
-         fpts_pg = (sum(fpts_hppr)/n),
-         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
-         tot_recept = sum(receptions),
-         tot_targ = sum(targets),
-         targ_pg = tot_targ/n,
-         recept_pg = tot_recept/n,
-         avg_dot = receiving_air_yards/targets,
-         carries_pg = tot_carries/n,
-         airyards_pg = sum(receiving_air_yards)/n,
-         fpts_pt = fpts_hppr/(receptions + carries),
-         yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
-         passyards_pg = sum(passing_yards)/n,
-         td_int_ratio = sum(passing_tds)/sum(interceptions),
-         td_int_ratio2 = passing_tds/interceptions,
-         ypc = rushing_yards/carries,
-         yards_per_touch = (rushing_yards + receiving_yards)/(carries + receptions),
-         catch_rate = receptions/targets,
-         compl_percent = sum(completions)/sum(attempts),
-         compl_percent2 = completions/attempts)
+billboarder::billboarder() %>%
+  bb_barchart(data = air_yards,
+              mapping = bbaes(x = week, y = air_yards_val, group = air_yards_str))
 
-highchart() %>%
-  hc_yAxis_multiples(list(title = list(text = "Yards"),
-                          # min=0,
-                          # max = max(p3$receiving_air_yards),
-                          showFirstLabel = TRUE,
-                          showLastLabel = TRUE,
-                          opposite = FALSE),
-                     list(title = list(text = "Completion %"),
-                          # min=0,
-                          # max = 5,
-                          # max = max(wr1$target_share),
-                          showLastLabel=FALSE,
-                          opposite = TRUE)) %>%
-  hc_add_series(p1, name = "Passing air yards", type = "column",
-                  hcaes(x = week, y = passing_air_yards), yAxis = 0) %>%
-  hc_add_series(p1, name = "Passing yards after catch", type = "column",
-                hcaes(x = week, y = passing_yards_after_catch), yAxis = 0) %>%
-  # hc_add_series(p1, name = "TD/INT", type = "line",
-  #                 hcaes(x = week, y = td_int_ratio), yAxis = 0) %>%
-    hc_add_series(p1, name = "Completion %", type = "line",
-                  hcaes(x = week, y = compl_percent2), yAxis = 1) %>%
-  hc_colors(c("darkcyan", "lightblue", "darkred"))
 
 ####################### LEAGUE RANKINGS ##########################
-######################
-
-####################### TOTAL TOUCHES RANK ##########################
-rank_touches <- season %>%
-  # filter(position == df2$position[1]) %>%
-  filter(position == wr1$position[1]) %>%
-  # filter(week >= input$weekRange[1], week <= input$weekRange[2]) %>%
-  filter(week >= 1, week <= 16) %>%
-  group_by(player_id) %>%
-  add_count() %>%
-  mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
-         recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
-         pass_yards_pg = (sum(passing_yards)/nrow(.)),
-         tot_fpts = sum(fpts_hppr),
-         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
-         tot_recept = sum(receptions),
-         tot_targ = sum(targets),
-         tot_carries = sum(carries),
-         tot_touch = tot_recept+ tot_carries,
-         touches_pg = tot_touch/n) %>%
-  ungroup() %>%
-  # filter(touches_pg >= 4) %>%
-  group_by(player_id) %>%
-  slice(n = 1) %>%
-  ungroup() %>%
-  arrange(-touches_pg) %>%
-  head(75)
-
- tmp1 <- rb1 %>% mutate(across(where(is.numeric), round, 2))
-highchart() %>%
-  hc_add_theme(hc_theme_smpl()) %>%
-  # hc_add_series(rank_touches, name = "Touches", type = "column",
-  #               hcaes(x = full_name, y = tot_touch), yAxis = 0 ) %>%
-  hc_add_series(rank_touches, name = "Touches per game", type = "column",
-                hcaes(x = full_name, y = touches_pg)) %>%
-  hc_colors(c("darkcyan", "darkred")) %>%
-  hc_xAxis(categories = rank_touches$player_name) %>%
-  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
-
 ####################### YPC RANK ##########################
 
 rank_touch <- season %>%
@@ -529,7 +395,6 @@ hc_add_series(wr1, name = "Target share", type = "spline",
   hc_colors(c("darkcyan", "lightblue", "darkred"))
 # hc_yAxis(min = 0) %>%
 hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = '100%')
-
 ####################### AIR YARDS RANK ##########################
 
 rank_airyards <- season %>%
@@ -572,100 +437,9 @@ rank_airyards <- season %>%
 # ggplotly(ggplot(rank_airyards, aes(x = fpts_pg, y = airyards_pg)) +
 #            geom_point(aes(size = tot_recept, col = full_name)))
 
-####################### AFTER CATCH RANK ##########################
-
-df1 <- season()
-df2 <- player1()
-
-rank_after_catch <- season %>%
-  add_count(name = "count1") %>%
-  filter(week >= 1, week <= 16) %>%
-  group_by(recent_team) %>%
-  mutate(team_targets = sum(targets), target_share = targets/team_targets) %>%
-  ungroup() %>%
-  filter(position == "WR") %>%
-  group_by(player_id) %>%
-  add_count(name = "count2") %>%
-  mutate(tot_fpts = sum(fpts_hppr),
-         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
-         tot_recept = sum(receptions),
-         tot_targ = sum(targets),
-         fpts_pg = tot_fpts/count2,
-         targ_pg = tot_targ/count2,
-         recept_pg = tot_recept/count2,
-         avg_targ_share = tot_targ/team_targets,
-         tot_yards_after_catch = sum(receiving_yards_after_catch),
-         yards_after_catch_pg = tot_yards_after_catch/count2) %>%
-  slice(n = 1) %>%
-  arrange(-tot_yards_after_catch) %>%
-  ungroup() %>%
-  slice(n = 1:24)
-
-rank_after_catch$yards_after_catch_pg <- round(rank_after_catch$yards_after_catch_pg, 2)
-highchart() %>%
-  hc_add_theme(hc_theme_darkunica()) %>%
-  hc_add_series(rank_after_catch, name = "Total YAC", type = "column",
-                hcaes(x = full_name, y = tot_yards_after_catch), yAxis = 0 ) %>%
-  hc_add_series(rank_after_catch, name = "YAC per game", type = "column",
-                hcaes(x = full_name, y = yards_after_catch_pg), yAxis = 0 ) %>%
-  hc_colors(c("darkcyan", "darkred")) %>%
-  hc_xAxis(categories = rank_after_catch$full_name) %>%
-  hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL)
 
 
-############## IMAGE & PLAYER PROFILE #############
-library(jpeg)
-library(png)
-library(EBImage)
 
-roster <- fast_scraper_roster(2020) %>%
-  filter(position %in% c("QB", "RB", "TE", "WR")) %>%
-  filter(full_name == rb1$full_name[1])
-
-info <- roster %>%
-  select(full_name, team, position, birth_date, height, weight, college)
-
-DT::datatable(info, class = "stripe")
-tib <- tibble::enframe(info2$values)
-tib2 <- tib[,2]
-datatable(tib2)
-info <- info %>% mutate(across(1:7, as.character))
-
-info2 <- info %>%
-  rename("Name" = "full_name", "Team" = 'team', "Position" = "position", "Birth Date" = "birth_date", "Height" = "height", "Weight" = "weight", "College" = "college")
-
-info2 <- info2 %>% pivot_longer(1:7, names_to = "Summary", values_to = "values")
-
-info2 <- info2 %>% rename(" " = "Summary", "  " = "values")
-
-
-make_profile = function(df){
-
-  formattable(df, align = c("l", rep("r", NCOL(df) - 1)))
-              # list(`Name` = formatter("span", style = ~ style(color = "azure1",font.weight = "bold")),
-              #      `Team` = color_tile("cornsilk", "darkgoldenrod1"),
-              #      `Position` = color_tile("lightpink", "tomato"),
-              #      `Birth Date` = formatter("span", style = ~ style(color = "azure1",font.weight = "bold"))))
-
-  # Make an interactive Table! with a caption
-  # datatable(mydata, caption = paste('COVID-19 Statistics', myfips$state, myfips$date),
-  #           options = list(paging = FALSE, searching = FALSE))
-  # datatable(mydata, options = list(paging = FALSE, searching = FALSE))
-}
-make_profile(info2)
-url <- list(roster[,24])
-
-
-img = readImage('https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/3917315.png')
-display(img, method = "raster")
-
-download.file('https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/3917315.png',  destfile="tmp.png", mode="wb")
-
-info <- roster %>%
-  select(full_name, team, position, birth_date, height, weight, college, gsis_id)
-
-
-# tags$img(src = "https://www.rstudio.com/wp-content/uploads/2014/03/blue-125.png")
 
 # PLAYER AIR YARDS + REC. YARDS
 ggplot(p2, aes(x = week, y = receiving_yards)) +
@@ -1210,6 +984,70 @@ fantasy <- load_pbp(2020) %>%
   # rosters2 <- rosters
   # rosters2$name_abbr <- paste0(substr(rosters$first_name, start = 1, stop = 1), ".")
   # rosters2$player_name <- paste0(rosters2$name_abbr, rosters2$last_name)
+
+
+
+
+
+
+
+
+
+
+
+################## HEADSHOT + PROFILE ###############
+
+
+
+
+
+
+  roster <- fast_scraper_roster(2020) %>%
+    filter(position %in% c("QB", "RB", "TE", "WR"))
+
+  roster <- df2 %>%
+    select(full_name, headshot_url) %>%
+    filter(full_name == df1$full_name[1])
+  url <- as.character(df2[1,2])
+  url
+
+    df2 <- headshotData()
+    pic <- df2
+    tags$img(src = pic, width = 150, height = 150)
+
+    roster <- roster %>%
+      filter(full_name == wr1$full_name[1])
+    info <- roster %>%
+      select(full_name, team, position, birth_date, height, weight, college, headshot_url)
+
+    info <- info %>%
+      mutate(across(1:7, as.character)) %>%
+      mutate(Photo = paste0("<img src=", dQuote(headshot_url), " height = \"52\"></img>")) %>%
+      select(Photo, full_name, team, position, birth_date, height, weight, college)
+
+    info <- info %>%
+      rename("Name" = "full_name",
+             "Team" = 'team',
+             "Position" = "position",
+             "Birth Date" = "birth_date",
+             "Height" = "height",
+             "Weight" = "weight",
+             "College" = "college")
+
+    info <- info %>% pivot_longer(1:8, names_to = "____", values_to = "___")
+
+    customGreen0 = "#DeF7E9"
+
+    customGreen = "#71CA97"
+
+    customRed = "#ff7f7f"
+formattable(info2, align =c("l","l"),
+            # list( `____`= color_bar(customGreen)))
+list(`____` = formatter(
+  "span", style = ~ style(color = "black", font.weight = "bold")),
+  `___`= color_bar(customGreen0)))
+  formattable::color_bar()
+DT::datatable(info, escape = FALSE)
 
 
 
