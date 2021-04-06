@@ -23,10 +23,12 @@ library(gsisdecoder)
 
 library(dplyr)
 library(tidyr)
+library(lubridate)
 library(BAMMtools)
 
 library(DT)
 library(formattable)
+library(knitr)
 library(highcharter)
 
 source('helper.R')
@@ -239,11 +241,40 @@ output$YardsGauge <- renderGauge({
 })
 ```
 
+### 
+<center>
+```{r, fig.width = 115}
+htmlOutput("headshotPic", height = "100%")
+```
+</center>
+
+```{r context="server"}
+headshotData <- eventReactive(input$submitButton, {
+  if(is.null(input$playerSearch)) {
+    NULL
+  } else if (!is.null(input$variableDropdown)) {
+        df1 <- player1()
+        df2 <- roster()
+
+        df2 <- df2 %>% filter(full_name == df1$full_name[1])
+        # url <- paste0('<img src="', dQuote(df2$headshot_url),'">')
+        url <- paste0("<img height='100' src=", dQuote(df2$headshot_url), " img>")
+        url
+        
+  }
+})
+
+output$headshotPic <- shiny::renderText({
+  headshotData()
+})
+```
+
 ### Position rank
-```{r, fig.width = 230}
+```{r, fig.width = 115}
 valueBoxOutput("positionRankBox")
 ```
 
+<center>
 ```{r context="server"}
 # Total FPTS positional rank during period
 positionRank <- eventReactive(input$submitButton, {
@@ -275,10 +306,13 @@ positionRank <- eventReactive(input$submitButton, {
 
 # Output position Rank value box to UI
 output$positionRankBox <- renderValueBox({
-  valueBox(positionRank(), icon = "fa-football-ball", color = 'danger',
+
+  valueBox(div(positionRank(), style = "text-align: center; margin-right: auto; margin-left: auto"), icon = "fa-football-ball", color = 'danger',
            caption = " ")
 })
 ```
+</center>
+
 Row
 --------------------------------------------------
 ### Game log
@@ -288,7 +322,7 @@ highchartOutput("gamelogGraph")
 
 ### Player Profile
 ```{r, fig.width = 230}
-formattableOutput('profileTable')
+DTOutput("profileTable",  height = "100%")
 ```
 
 ```{r context = "server"}
@@ -314,34 +348,43 @@ profileData <- eventReactive(input$submitButton, {
         df1 <- player1()
         df2 <- roster()
 
-        df2 <- df2 %>% filter(full_name == df1$full_name[1])
+        df2 <- df2 %>% 
+          filter(full_name == df1$full_name[1]) %>%
+          mutate(age = round(as.numeric(interval(birth_date, Sys.Date()), 'year'), 1))
+    
         info <- df2 %>%
-              select(full_name, team, position, birth_date, height, weight, college, headshot_url)
+          select(full_name, team, position, age, height, weight, college, birth_date,headshot_url)
+        
+        info <- info %>%
+          mutate(across(1:8, as.character)) %>%
+          # mutate(Photo = paste0("<img height='20' src=", dQuote(headshot_url), " img>")) %>%
+          select(full_name, team, position, age, height, weight, birth_date, college)
+      
+        info <- info %>%
+          rename("Name" = "full_name",
+                 "Team" = 'team',
+                 "Position" = "position",
+                 "Age" = "age",
+                 "Height" = "height",
+                 "Weight" = "weight",
+                 "Birth Date" = "birth_date",
+                 "College" = "college")
     
-    
-    info <- info %>%
-      mutate(across(1:7, as.character)) %>% 
-      mutate(Photo = paste0("<img src=", dQuote(headshot_url), " height = \"52\"></img>")) %>% 
-      select(Photo, full_name, team, position, birth_date, height, weight, college)
-
-    info <- info %>%
-      rename("Name" = "full_name",
-             "Team" = 'team',
-             "Position" = "position",
-             "Birth Date" = "birth_date",
-             "Height" = "height",
-             "Weight" = "weight",
-             "College" = "college")
-
-    info <- info %>% pivot_longer(1:8, names_to = "____", values_to = " ")
-
+        info <- info %>% pivot_longer(1:8, names_to = "class", values_to = "vals")
   }
 })
 
-output$profileTable <- renderFormattable({
+# output$headshotUI <- renderUI ({
+#   output$profileTable <- renderFormattable({
+#     df <- profileData()
+#     make_profile(df)
+#    })
+#   formattableOutput('profileTable')
+# })
+output$profileTable <- renderDT({
     df <- profileData()
     make_profile(df)
-   })
+})
 ```
 
 

@@ -998,15 +998,44 @@ fantasy <- load_pbp(2020) %>%
 
 
 ################## HEADSHOT + PROFILE ###############
-
-
-
-
-
+library(lubridate)
 
   roster <- fast_scraper_roster(2020) %>%
     filter(position %in% c("QB", "RB", "TE", "WR"))
 
+  roster <- roster %>% filter(full_name == wr1$full_name[1])
+  roster <- roster %>% mutate(age = round(as.numeric(interval(birth_date, Sys.Date()), 'year'), 1))
+
+  info <- roster %>%
+    select(full_name, team, position, age, height, weight, college, birth_date,headshot_url)
+
+
+  info <- info %>%
+    mutate(across(1:8, as.character)) %>%
+    # mutate(Photo = paste0("<img height='20' src=", dQuote(headshot_url), " img>")) %>%
+    select(full_name, team, position, age, height, weight, birth_date, college)
+
+  info <- info %>%
+    rename("Name" = "full_name",
+           "Team" = 'team',
+           "Position" = "position",
+           "Age" = "age",
+           "Height" = "height",
+           "Weight" = "weight",
+           "Birth Date" = "birth_date",
+           "College" = "college")
+
+
+  info <- info %>% pivot_longer(1:8, names_to = "class", values_to = "vals")
+
+roster$headshot_url
+datatable(info, options = list(scrollX = TRUE, paging = TRUE, searching = TRUE))
+datatable(info,
+          colnames = c(" " = "class", " " = "vals"),
+          options = list(dom = "t"),
+          rownames = FALSE)
+
+make_profile(info)
   roster <- df2 %>%
     select(full_name, headshot_url) %>%
     filter(full_name == df1$full_name[1])

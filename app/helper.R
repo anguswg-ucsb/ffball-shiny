@@ -119,11 +119,14 @@ make_player_plot <- function(df) {
 
 # make formattable table Player Profile info
 make_profile = function(df){
-
-  formattable(df, align =c("l","l"),
-              # list( `____`= color_bar(customGreen)))
-              list(`____` = formatter(
-                "span", style = ~ style(color = "black", font.weight = "bold"))))
+  datatable(df, fillContainer = TRUE,
+            colnames = c(" " = "class", " " = "vals"),
+            options = list(dom = "t"),
+            rownames = FALSE)
+  # formattable(df, align =c("l","l"),
+  #             # list( `____`= color_bar(customGreen)))
+  #             list(`____` = formatter(
+  #               "span", style = ~ style(color = "black", font.weight = "bold"))))
 
   # list(`Name` = formatter("span", style = ~ style(color = "azure1",font.weight = "bold")),
   #      `Team` = color_tile("cornsilk", "darkgoldenrod1"),
