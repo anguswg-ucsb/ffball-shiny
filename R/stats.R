@@ -5,11 +5,12 @@
 # library(plotly)
 # library(billboarder)
 
-
-
+tablerDashGallery()
 # LOAD IN SEASON DATA
 season <- load_data(2020)
 # saveRDS(season, file = "data/nfl-season-2020")
+
+as.list(sort(season$full_name))
 
 ################## GAME LOG YARDS + FANTASY POINTS #####################
 highchart() %>%
@@ -1014,7 +1015,26 @@ library(lubridate)
     mutate(across(1:8, as.character)) %>%
     # mutate(Photo = paste0("<img height='20' src=", dQuote(headshot_url), " img>")) %>%
     select(full_name, team, position, age, height, weight, birth_date, college)
-
+  profileCard <- tablerProfileCard(
+    width = 12,
+    title = "Peter Richards",
+    subtitle = "Big belly rude boy, million
+      dollar hustler. Unemployed.",
+    background = "https://preview.tabler.io/demo/photos/ilnur-kalimullin-218996-500.jpg",
+    src = "https://preview.tabler.io/demo/faces/male/16.jpg",
+    tablerSocialLinks(
+      tablerSocialLink(
+        name = "facebook",
+        href = "https://www.facebook.com",
+        icon = "facebook"
+      ),
+      tablerSocialLink(
+        name = "twitter",
+        href = "https://www.twitter.com",
+        icon = "twitter"
+      )
+    )
+  )
   info <- info %>%
     rename("Name" = "full_name",
            "Team" = 'team',
@@ -1080,9 +1100,39 @@ list(`____` = formatter(
   formattable::color_bar()
 DT::datatable(info, escape = FALSE)
 
+###### DATA TABLE #####
 
+#select position, team, full_name to join with summarized df
+info <- season %>%
+  select(3, 4, 42, 43)
+info <- unique(info)
+info <- info %>%
+  filter(position == "QB") %>%
+  group_by(full_name) %>%
+  summarise(across(6:39, sum))
+info <- left_join(df2, df, by = "full_name")
+df <- df %>%
+  select(4, 1:3, 38, 37, 36, 5:35) %>%
+  arrange(-fpts_hppr)
 
+# datatabale
+datatable(df3, options = list(scrollX = TRUE, paging = TRUE, searching = TRUE))
 
+names(df3) <- janitor::make_clean_names(names(df3), "title")
+clean_names()
+season2 <- season[season$position == qb1$position,]
+
+#select position, team, full_name to join with summarized df
+    df2 <- season2 %>%
+      select(3, 4, 42, 43)
+    df2 <- unique(df2)
+    season2 <- season2 %>%
+        group_by(full_name) %>%
+        summarise(across(6:39, sum))
+    df3 <- left_join(df2, season2, by = "full_name")
+    df3 <- df3 %>%
+      select(4, 1:3, 38, 37, 36, 5:35) %>%
+      arrange(-fpts_hppr)
 
 
 

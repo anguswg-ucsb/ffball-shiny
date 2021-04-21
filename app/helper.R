@@ -88,8 +88,10 @@ make_player_plot <- function(df) {
   # Fantasy points + RUSH YARDS + PASS + REC  in game in weeks
   highchart() %>%
     hc_add_theme(hc_theme_smpl()) %>%
+      hc_title(text = "Yards and Fantasy points",
+               align = "center") %>%
       hc_plotOptions(column = list(stacking = "normal")) %>%
-      hc_yAxis(min = 0) %>%
+      hc_yAxis(title = list(text = "Yards/Fantasy points"), min = 0) %>%
       hc_add_series(df, name = "Rushing yards", type = "column", yaxis = 0, hcaes(x = week, y = rushing_yards)) %>%
       hc_add_series(df, name = "Receiving yards", type = "column", yaxis = 0, hcaes(x = week, y = receiving_yards)) %>%
       hc_add_series(df, name = "Passing yards",type = "column", yaxis = 0, hcaes(x = week, y = passing_yards)) %>%
@@ -138,6 +140,228 @@ make_profile = function(df){
   #           options = list(paging = FALSE, searching = FALSE))
   # datatable(mydata, options = list(paging = FALSE, searching = FALSE))
 }
+
+rank_airyards <- function(df1, df2, start_week, end_week) {
+  rank_airyards <- df1 %>%
+  filter(position == df2$position[1]) %>%
+  group_by(player_id) %>%
+  add_count(name = "count1") %>%
+  filter(week >= start_week, week <= end_week) %>%
+  add_count(name = "count2") %>%
+  mutate(tot_fpts = sum(fpts_hppr),
+         tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+         tot_recept = sum(receptions),
+         tot_targ = sum(targets),
+         tot_carries = sum(carries),
+         tot_touch = tot_recept+ tot_carries,
+         fpts_pg = tot_fpts/count2,
+         targ_pg = tot_targ/count2,
+         recept_pg = tot_recept/count2,
+         carries_pg = tot_carries/count2,
+         airyards_pg = sum(receiving_air_yards)/count2,
+         fpts_pt = fpts_pg/(recept_pg + carries_pg),
+         yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/count2,
+         passyards_pg = sum(passing_yards)/count2,
+         td_int_ratio = sum(passing_tds)/sum(interceptions),
+         tot_airyards = sum(receiving_air_yards)) %>%
+  slice(n = 1) %>%
+  # filter(tot_touch >= 100 | tot_recept >=60) %>%
+  arrange(-tot_airyards) %>%
+    filter(count2 >= 3) %>%
+  ungroup() %>%
+  slice(n = 1:24)
+rank_airyards <- rank_airyards %>%
+  mutate(across(where(is.numeric), round, 2))
+}
+
+
+# highchart() %>%
+#   hc_add_theme(hc_theme_smpl()) %>%
+#   hc_yAxis_multiples(list(title = list(text = "Total Air yards"),
+#                           min=0,
+#                           max = max(ay$tot_airyards),
+#                           showFirstLabel = TRUE,
+#                           showLastLabel = TRUE,
+#                           opposite = FALSE),
+#                      list(title = list(text ='Air yards per game'),
+#                           min=0,
+#                           max = max(ay$airyards_pg),
+#                           # max = max(wr1$target_share),
+#                           showLastLabel=FALSE,
+#                           opposite = TRUE)) %>%
+#   hc_add_series(ay, name = "Total air yards",  type = "column", hcaes(x = full_name, y = tot_airyards), yAxis = 0) %>%
+#   hc_add_series(ay, name = "air yard/game", type = "column",
+#                 hcaes(x = full_name, y = airyards_pg), yAxis = 1 ) %>%
+#   hc_chart(plotBorderWidth = 1, plotBorderColor = '#b4b4b4', height = NULL) %>%
+#   hc_colors(c("darkcyan", "darkred")) %>%
+#   hc_xAxis(categories = ay$player_name)
+
+rank_targets <- function(df1, df2, start_week, end_week) {
+  rank_targ <- df1 %>%
+    add_count(name = "count1") %>%
+    filter(week >= start_week, week <= end_week) %>%
+    group_by(recent_team) %>%
+    mutate(team_targets = sum(targets), target_share = targets/team_targets) %>%
+    ungroup() %>%
+    filter(position == df2$position[1]) %>%
+    group_by(player_id) %>%
+    add_count(name = "count2") %>%
+    mutate(tot_fpts = sum(fpts_hppr),
+           tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+           tot_recept = sum(receptions),
+           tot_targ = sum(targets),
+           fpts_pg = tot_fpts/count2,
+           targ_pg = tot_targ/count2,
+           recept_pg = tot_recept/count2,
+           avg_targ_share = tot_targ/team_targets) %>%
+    slice(n = 1) %>%
+    arrange(-avg_targ_share) %>%
+    ungroup() %>%
+    slice(n = 1:24)
+  rank_targ <- rank_targ %>%
+    mutate(across(where(is.numeric), round, 2))
+
+}
+
+rank_ypt <- function(df1, df2, start_week, end_week) {
+  rank_ypc <- df1 %>%
+    filter(position == df2$position[1]) %>%
+    filter(week >= start_week, week <= end_week) %>%
+    # filter(week >= 1, week <= 16) %>%
+    group_by(player_id) %>%
+    add_count() %>%
+    mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
+           recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
+           pass_yards_pg = (sum(passing_yards)/nrow(.)),
+           tot_fpts = sum(fpts_hppr),
+           tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+           tot_recept = sum(receptions),
+           tot_targ = sum(targets),
+           tot_carries = sum(carries),
+           tot_touch = tot_recept+ tot_carries,
+           fpts_pg = (sum(fpts_hppr)/n),
+           tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+           tot_recept = sum(receptions),
+           tot_targ = sum(targets),
+           targ_pg = tot_targ/n,
+           recept_pg = tot_recept/n,
+           avg_dot = receiving_air_yards/targets,
+           carries_pg = tot_carries/n,
+           airyards_pg = sum(receiving_air_yards)/n,
+           fpts_pt = fpts_pg/(recept_pg + carries_pg),
+           yards_pg = (sum(rushing_yards) + sum(receiving_yards) + sum(passing_yards))/n,
+           passyards_pg = sum(passing_yards)/n,
+           td_int_ratio = sum(passing_tds)/sum(interceptions),
+           ypc = sum(rushing_yards)/tot_carries,
+           yards_per_touch = (sum(rushing_yards) + sum(receiving_yards))/tot_touch,
+           fpts_per_touch = tot_fpts/(tot_recept + tot_carries),
+           touches_pg = carries_pg + recept_pg) %>%
+    ungroup() %>%
+    filter(carries_pg >= 6.25 | recept_pg >= 4 | touches_pg >= 6, n >= 3) %>%
+    group_by(player_id) %>%
+    slice(n = 1) %>%
+    ungroup() %>%
+    mutate(avg_ypc = mean(ypc), avg_ypt = mean(yards_per_touch)) %>%
+    arrange(-yards_per_touch) %>%
+    slice(n = 1:36)
+  rank_ypc <- rank_ypc %>%
+    mutate(across(where(is.numeric), round, 2))
+
+}
+
+rank_touches <- function(df1, df2, start_week, end_week) {
+  rank_touches <- df1 %>%
+    filter(position == df2$position[1]) %>%
+    filter(week >= start_week, week <= end_week) %>%
+    group_by(player_id) %>%
+    add_count() %>%
+    mutate(rush_yards_pg = (sum(rushing_yards)/nrow(.)),
+           recieve_yards_pg = (sum(receiving_yards)/nrow(.)),
+           pass_yards_pg = (sum(passing_yards)/nrow(.)),
+           tot_fpts = sum(fpts_hppr),
+           tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+           tot_recept = sum(receptions),
+           tot_targ = sum(targets),
+           tot_carries = sum(carries),
+           tot_touch = tot_recept+ tot_carries,
+           touches_pg = tot_touch/n) %>%
+    ungroup() %>%
+    # filter(touches_pg >= 4) %>%
+    group_by(player_id) %>%
+    slice(n = 1) %>%
+    ungroup() %>%
+    arrange(-touches_pg) %>%
+    head(75)
+
+  rank_touches <- rank_touches %>%
+    mutate(across(where(is.numeric), round, 2))
+}
+
+rank_yac <- function(df1, df2, start_week, end_week) {
+  rank_after_catch <- df1 %>%
+    add_count(name = "count1") %>%
+    filter(week >= start_week, week <= end_week) %>%
+    group_by(recent_team) %>%
+    mutate(team_targets = sum(targets), target_share = targets/team_targets) %>%
+    ungroup() %>%
+    filter(position == df2$position[1]) %>%
+    group_by(player_id) %>%
+    add_count(name = "count2") %>%
+    mutate(tot_fpts = sum(fpts_hppr),
+           tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+           tot_recept = sum(receptions),
+           tot_targ = sum(targets),
+           fpts_pg = tot_fpts/count2,
+           targ_pg = tot_targ/count2,
+           recept_pg = tot_recept/count2,
+           avg_targ_share = tot_targ/team_targets,
+           tot_yards_after_catch = sum(receiving_yards_after_catch),
+           yards_after_catch_pg = tot_yards_after_catch/count2) %>%
+    slice(n = 1) %>%
+    arrange(-tot_yards_after_catch) %>%
+    ungroup() %>%
+    slice(n = 1:36)
+
+  rank_after_catch$yards_after_catch_pg <- round(rank_after_catch$yards_after_catch_pg, 2)
+  rank_after_catch
+}
+
+rank_passing <- function(df1, df2, start_week, end_week) {
+  rank_pass <- df1 %>%
+    add_count(name = "count1") %>%
+    filter(week >= start_week, week <= end_week) %>%
+    group_by(recent_team) %>%
+    mutate(team_targets = sum(targets), target_share = targets/team_targets) %>%
+    ungroup() %>%
+    filter(position == df2$position[1]) %>%
+    group_by(player_id) %>%
+    add_count(name = "count2") %>%
+    mutate(tot_fpts = sum(fpts_hppr),
+           tot_tds = sum(rushing_tds) + sum(passing_tds) + sum(receiving_tds) + sum(special_teams_tds),
+           tot_recept = sum(receptions),
+           tot_targ = sum(targets),
+           fpts_pg = tot_fpts/count2,
+           targ_pg = tot_targ/count2,
+           recept_pg = tot_recept/count2,
+           avg_targ_share = tot_targ/team_targets,
+           tot_yards_after_catch = sum(receiving_yards_after_catch),
+           yards_after_catch_pg = tot_yards_after_catch/count2,
+           passyards_pg = sum(passing_yards)/count2,
+           passing_air_yards_pg = sum(passing_air_yards)/count2,
+           yards_per_attempt = sum(passing_yards)/sum(completions),
+           td_int_ratio = sum(passing_tds)/sum(interceptions),
+           compl_percent = sum(completions)/sum(attempts),
+           compl_percent2 = completions/attempts)%>%
+    slice(n = 1) %>%
+    arrange(-passyards_pg) %>%
+    ungroup() %>%
+    head(35)
+
+  rank_pass <- rank_pass %>%
+    mutate(across(where(is.numeric), round, 2))
+
+}
+
 
 # Deals with grouping of NULL data when start has no data
 if_is_empty <- function(i){
